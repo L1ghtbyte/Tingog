@@ -18,7 +18,7 @@ export function KPIStrip() {
         <div className="flex gap-2 p-2 bg-background shrink-0 border-b border-outline-variant">
             <div className="flex-1 bg-surface-container border border-outline-variant rounded-sm p-3 flex flex-col justify-between">
                 <span className="text-label-caps font-label-caps text-on-surface-variant">TOTAL REGISTERED HH</span>
-                <span className="text-display-telemetry font-display-telemetry text-white">{totalHH.toString().padStart(3, '0')}</span>
+                <span className="text-display-telemetry font-display-telemetry text-on-surface">{totalHH.toString().padStart(3, '0')}</span>
             </div>
             
             <div className="flex-1 bg-surface-container border border-red-500/50 rounded-sm p-3 flex flex-col justify-between relative overflow-hidden">

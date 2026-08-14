@@ -55,10 +55,10 @@ export function TacticalMap() {
     return (
         <main className="flex-1 bg-surface-container border border-outline-variant rounded-sm relative flex flex-col overflow-hidden" onClick={() => setSelectedPurokId(null)}>
             <div className="absolute top-3 left-3 z-10 flex gap-2">
-                <button onClick={() => setFilter('ALL')} className={`bg-surface-container/90 border px-3 py-1.5 text-label-caps font-label-caps backdrop-blur-sm transition-colors ${filter === 'ALL' ? 'border-primary text-primary' : 'border-outline-variant text-on-surface-variant hover:text-white'}`}>ALL</button>
-                <button onClick={() => setFilter('CRITICAL')} className={`bg-surface-container/90 border px-3 py-1.5 text-label-caps font-label-caps backdrop-blur-sm transition-colors ${filter === 'CRITICAL' ? 'border-red-500 text-red-500' : 'border-outline-variant text-on-surface-variant hover:text-white'}`}>CRITICAL</button>
-                <button onClick={() => setFilter('NEEDS')} className={`bg-surface-container/90 border px-3 py-1.5 text-label-caps font-label-caps backdrop-blur-sm transition-colors ${filter === 'NEEDS' ? 'border-amber-500 text-amber-500' : 'border-outline-variant text-on-surface-variant hover:text-white'}`}>NEEDS</button>
-                <button onClick={() => setFilter('SILENT')} className={`bg-surface-container/90 border px-3 py-1.5 text-label-caps font-label-caps backdrop-blur-sm transition-colors ${filter === 'SILENT' ? 'border-[#64748B] text-[#64748B]' : 'border-outline-variant text-on-surface-variant hover:text-white'}`}>SILENT</button>
+                <button onClick={() => setFilter('ALL')} className={`bg-surface-container/90 border px-3 py-1.5 text-label-caps font-label-caps backdrop-blur-sm transition-colors ${filter === 'ALL' ? 'border-primary text-primary' : 'border-outline-variant text-on-surface-variant hover:text-on-surface'}`}>ALL</button>
+                <button onClick={() => setFilter('CRITICAL')} className={`bg-surface-container/90 border px-3 py-1.5 text-label-caps font-label-caps backdrop-blur-sm transition-colors ${filter === 'CRITICAL' ? 'border-red-500 text-red-500' : 'border-outline-variant text-on-surface-variant hover:text-on-surface'}`}>CRITICAL</button>
+                <button onClick={() => setFilter('NEEDS')} className={`bg-surface-container/90 border px-3 py-1.5 text-label-caps font-label-caps backdrop-blur-sm transition-colors ${filter === 'NEEDS' ? 'border-amber-500 text-amber-500' : 'border-outline-variant text-on-surface-variant hover:text-on-surface'}`}>NEEDS</button>
+                <button onClick={() => setFilter('SILENT')} className={`bg-surface-container/90 border px-3 py-1.5 text-label-caps font-label-caps backdrop-blur-sm transition-colors ${filter === 'SILENT' ? 'border-[#64748B] text-[#64748B]' : 'border-outline-variant text-on-surface-variant hover:text-on-surface'}`}>SILENT</button>
             </div>
 
             <div className="absolute inset-0 z-0 bg-background" style={{ backgroundImage: "radial-gradient(#334155 1px, transparent 1px)", backgroundSize: "24px 24px", opacity: 0.3 }}></div>
@@ -81,7 +81,7 @@ export function TacticalMap() {
                             {isSelected && (
                                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 w-64 bg-surface-container-high/95 border border-outline-variant backdrop-blur-md p-3 opacity-100 z-30 shadow-xl" onClick={e => e.stopPropagation()}>
                                     <div className="flex justify-between items-start mb-2">
-                                        <span className="text-label-caps font-label-caps text-white font-bold">{p.device_id}: {p.name}</span>
+                                        <span className="text-label-caps font-label-caps text-on-surface font-bold">{p.device_id}: {p.name}</span>
                                         <span className={`text-label-caps font-label-caps ${getPinTextColor(p)} ${isCritical ? 'animate-pulse' : ''}`}>{formatTime(p.last_event_at)}</span>
                                     </div>
                                     <div className="text-data-tabular font-data-tabular text-on-surface space-y-1 mb-3">

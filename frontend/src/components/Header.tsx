@@ -36,7 +36,7 @@ export function Header({ toggleTheme, isDarkMode }: HeaderProps) {
             </div>
             
             <div className="flex flex-col items-center">
-                <span className="text-data-tabular font-data-tabular font-bold text-white tracking-widest">{timeString}</span>
+                <span className="text-data-tabular font-data-tabular font-bold text-on-surface tracking-widest">{timeString}</span>
                 <span className="text-label-caps font-label-caps text-on-surface-variant">{dateString}</span>
             </div>
             

@@ -56,7 +56,7 @@ export function PacketStream() {
                 {packets.map(p => (
                     <div key={p.id} className={`bg-surface-container-high border p-2 flex flex-col gap-2 transition-colors ${getPacketStyle(p)}`}>
                         <div className="flex justify-between items-start border-b border-outline-variant pb-1">
-                            <span className={`text-data-tabular font-data-tabular ${p.acked ? 'text-on-surface-variant' : 'text-white font-bold'}`}>
+                            <span className={`text-data-tabular font-data-tabular ${p.acked ? 'text-on-surface-variant' : 'text-on-surface font-bold'}`}>
                                 {p.device_id} ({p.purok_name.replace('Purok ', '')})
                             </span>
                             <span className={`text-data-tabular font-data-tabular ${p.need_type === 'TABANG' && !p.acked ? 'text-red-400' : 'text-on-surface-variant'}`}>
