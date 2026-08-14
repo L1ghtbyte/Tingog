@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useRef, type ReactNode } from 'react';
 
 // --- DATA TYPES ---
 export type NeedType = 'TABANG' | 'TUBIG' | 'TAMBAL' | 'PAGKAON' | 'LUWAS';
@@ -106,6 +106,7 @@ export function TingogProvider({ children }: { children: ReactNode }) {
     const [puroks, setPuroks] = useState<Purok[]>(MOCK_PUROKS);
     const [packets, setPackets] = useState<Packet[]>(MOCK_PACKETS);
     const [anomalies] = useState<Anomaly[]>(MOCK_ANOMALIES);
+    const lastSequence = useRef(0);
 
     const ackPacket = (id: string) => {
         setPackets(prev => prev.map(p => p.id === id ? { ...p, acked: true } : p));
@@ -121,37 +122,62 @@ export function TingogProvider({ children }: { children: ReactNode }) {
         }));
     };
 
-    // Simulate incoming data over time
+    // Poll the ESP32 at the same origin. During `npm run dev`, no device is
+    // present, so the mock dashboard remains usable without an error state.
     useEffect(() => {
-        const interval = setInterval(() => {
-            // Randomly generate a LUWAS heartbeat for a random stable purok occasionally
-            if (Math.random() > 0.8) {
-                const stablePuroks = puroks.filter(p => p.status === 'stable');
-                if (stablePuroks.length > 0) {
-                    const randomPurok = stablePuroks[Math.floor(Math.random() * stablePuroks.length)];
-                    const newPacket: Packet = {
-                        id: `pkt-${Date.now()}`,
-                        device_id: randomPurok.device_id,
-                        purok_name: randomPurok.name,
-                        need_type: 'LUWAS',
-                        is_double_press: false,
-                        timestamp: new Date(),
-                        acked: false
+        type DeviceEvent = {
+            seq_num: number;
+            button: NeedType | 'COMBO';
+            buttons?: NeedType[];
+            press_type: 'single' | 'double' | 'hold';
+            timestamp: number;
+        };
+
+        const pollDevice = async () => {
+            try {
+                const response = await fetch(`/events?since=${lastSequence.current}`, { cache: 'no-store' });
+                if (!response.ok) return;
+                const data: { device_id: number; events: DeviceEvent[] } = await response.json();
+                if (!data.events.length) return;
+
+                lastSequence.current = data.events[data.events.length - 1].seq_num;
+                const deviceId = `DEV-${String(data.device_id).padStart(3, '0')}`;
+                const receivedAt = new Date();
+
+                setPackets(previous => [
+                    ...data.events.map((event): Packet => ({
+                        id: `device-${event.seq_num}`,
+                        device_id: deviceId,
+                        purok_name: 'Purok 1',
+                        need_type: event.button === 'COMBO' ? event.buttons?.[0] ?? 'TABANG' : event.button,
+                        is_double_press: event.press_type === 'double',
+                        timestamp: new Date(event.timestamp * 1000),
+                        acked: false,
+                    })),
+                    ...previous,
+                ]);
+
+                setPuroks(previous => previous.map(purok => {
+                    if (purok.device_id !== deviceId) return purok;
+                    const latest = data.events[data.events.length - 1];
+                    const needs = latest.button === 'COMBO' ? latest.buttons ?? [] : [latest.button];
+                    return {
+                        ...purok,
+                        active_needs: needs,
+                        status: 'attention',
+                        last_event_at: receivedAt,
+                        hours_since_heartbeat: 0,
                     };
-
-                    setPackets(prev => [newPacket, ...prev]);
-                    setPuroks(prev => prev.map(p => {
-                        if (p.id === randomPurok.id) {
-                            return { ...p, last_event_at: new Date(), hours_since_heartbeat: 0 };
-                        }
-                        return p;
-                    }));
-                }
+                }));
+            } catch {
+                // Device is offline or the Vite development server is in use.
             }
-        }, 15000); // Check every 15s
+        };
 
-        return () => clearInterval(interval);
-    }, [puroks]);
+        void pollDevice();
+        const interval = window.setInterval(() => void pollDevice(), 2000);
+        return () => window.clearInterval(interval);
+    }, []);
 
     return (
         <TingogContext.Provider value={{ puroks, packets, anomalies, ackPacket, dispatchResponse }}>
