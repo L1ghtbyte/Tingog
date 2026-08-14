@@ -26,39 +26,28 @@ export function Header({ toggleTheme, isDarkMode }: HeaderProps) {
     }).toUpperCase();
 
     return (
-        <header className="flex flex-wrap gap-2 justify-between items-center p-3 bg-surface border-b border-outline-variant shrink-0">
-            <div className="flex items-center gap-4">
-                <img alt="Tingog Brand Logo" className="h-8 w-8 object-contain rounded-sm bg-surface-container p-1 border border-outline-variant" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDcGCT-IQenDWK_ePkDUKyMq961Wp4NVyEDd_PCLJeQwgbbpO0IMlmlfiaVD40MA5YPLVwSO8kDEt5R6LMqE3r0UzW-ZYYg4PkaU94xTnIbMv8Y-dgCcGozmS8UApwHilyqcJ47vQwmNaOuK-qP8dy44AlJpIibf3Gbgsb7G2nyUGq0LjhMoITPVZdVe3sxmeFFN3RWg267JFcGSCohmsyOVgry0p3Noad523Zk63JoyfHlFvfc-tsh" />
-                <div className="flex flex-col">
-                    <h1 className="text-headline-lg font-headline-lg font-bold text-primary tracking-tighter leading-none">TINGOG</h1>
-                    <span className="hidden sm:block text-label-caps font-label-caps text-on-surface-variant leading-none">HOUSEHOLD EMERGENCY RESPONSE SYSTEM</span>
-                </div>
-            </div>
-            
-            <div className="flex flex-col items-center">
+        <header className="grid grid-cols-3 items-center p-3 bg-surface border-b border-outline-variant shrink-0 gap-2">
+            {/* Left: Time and Date */}
+            <div className="flex flex-col items-start justify-center">
                 <span className="text-data-tabular font-data-tabular font-bold text-on-surface tracking-widest">{timeString}</span>
                 <span className="text-label-caps font-label-caps text-on-surface-variant">{dateString}</span>
             </div>
+
+            {/* Center: Title */}
+            <div className="flex flex-col items-center justify-center text-center">
+                <h1 className="text-headline-lg font-headline-lg font-bold text-primary tracking-tighter leading-none">TINGOG</h1>
+                <span className="hidden sm:block text-label-caps font-label-caps text-on-surface-variant leading-none mt-1">DISASTER RESPONSE SYSTEM</span>
+            </div>
             
-            <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2 px-3 py-1 bg-surface-container border border-outline-variant rounded-sm">
-                    <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                    <span className="text-label-caps font-label-caps text-on-surface">GATEWAY 01 (BOGO) - ONLINE | RSSI: -78dBm</span>
-                </div>
-                
-                <div className="flex items-center gap-2">
-                    <button className="p-2 hover:bg-surface-container-highest transition-colors duration-75 rounded-sm flex items-center justify-center">
-                        <span className="material-symbols-outlined text-on-surface-variant text-[20px]">schedule</span>
-                    </button>
-                    <button 
-                        onClick={toggleTheme}
-                        className="p-2 hover:bg-surface-container-highest transition-colors duration-75 rounded-sm flex items-center justify-center">
-                        <span className="material-symbols-outlined text-on-surface-variant text-[20px]">
-                            {isDarkMode ? 'light_mode' : 'dark_mode'}
-                        </span>
-                    </button>
-                    <img alt="User Profile" className="w-8 h-8 rounded-sm object-cover border border-outline-variant" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAeUaiwDWVLFYw937ZLT2X2Fw8jGzgo7MpefjSPdyy34rxxI9waViEpdXbEDekqlsyXVjn-h2fHB84Skqec3PmlL5yZxUyV6urvOhnGZ7rFD8ObwH5eH9rLDacA5FMGSm7MLro2kuu4hIdj3hHN13dlMJnAlIynw4V9qLWYT3N6ZCSPBDqvzJdM1qwCWlgKdKOOveficQ8XKZ84Nk2Iybe1ky-NA61w_ueUgm9hOymSHNFaso9AsOxD" />
-                </div>
+            {/* Right: Theme Toggle only */}
+            <div className="flex justify-end items-center">
+                <button 
+                    onClick={toggleTheme}
+                    className="p-2 hover:bg-surface-container-highest transition-colors duration-75 rounded-sm flex items-center justify-center">
+                    <span className="material-symbols-outlined text-on-surface-variant text-[20px]">
+                        {isDarkMode ? 'light_mode' : 'dark_mode'}
+                    </span>
+                </button>
             </div>
         </header>
     );
