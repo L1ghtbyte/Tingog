@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+/* eslint-disable react-refresh/only-export-components */
+import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 
 // --- DATA TYPES ---
 export type NeedType = 'TABANG' | 'TUBIG' | 'TAMBAL' | 'PAGKAON' | 'LUWAS';
@@ -104,7 +105,7 @@ const MOCK_ANOMALIES: Anomaly[] = [
 export function TingogProvider({ children }: { children: ReactNode }) {
     const [puroks, setPuroks] = useState<Purok[]>(MOCK_PUROKS);
     const [packets, setPackets] = useState<Packet[]>(MOCK_PACKETS);
-    const [anomalies, setAnomalies] = useState<Anomaly[]>(MOCK_ANOMALIES);
+    const [anomalies] = useState<Anomaly[]>(MOCK_ANOMALIES);
 
     const ackPacket = (id: string) => {
         setPackets(prev => prev.map(p => p.id === id ? { ...p, acked: true } : p));

@@ -1,7 +1,7 @@
 import { useTingog } from '../context/TingogContext';
 
 const Sparkline = ({ type, color }: { type: string, color: string }) => {
-    let path = "";
+    let path: string;
     if (type === 'critical') path = "M0,30 L10,25 L15,35 L25,10 L30,40 L45,15 L55,30 L70,5 L80,35 L90,20 L100,30"; 
     else if (type === 'needs') path = "M0,35 L20,30 L40,32 L60,20 L80,25 L100,10"; 
     else if (type === 'silent') path = "M0,20 L20,18 L30,22 L40,20 L100,20"; 

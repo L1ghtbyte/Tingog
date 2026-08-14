@@ -106,6 +106,12 @@
     @apply bg-outline-variant;
 }
 
+@layer base {
+  button {
+    @apply cursor-pointer;
+  }
+}
+
 @layer utilities {
   .text-headline-md { @apply text-lg leading-6 font-semibold; }
   .font-headline-md { @apply font-inter; }

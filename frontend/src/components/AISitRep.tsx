@@ -3,22 +3,6 @@ import { useTingog } from '../context/TingogContext';
 export function AISitRep() {
     const { anomalies } = useTingog();
 
-    const getAnomalyIcon = (type: string) => {
-        switch (type) {
-            case 'CLUSTER': return 'warning';
-            case 'SILENCE': return 'sensors_off';
-            default: return 'info';
-        }
-    };
-
-    const getAnomalyColor = (severity: string) => {
-        return severity === 'red' ? 'text-red-500' : 'text-amber-500';
-    };
-
-    const getAnomalyBorder = (severity: string) => {
-        return severity === 'red' ? 'border-red-500/50' : 'border-amber-500/50';
-    };
-    
     const getAnomalyBg = (severity: string) => {
         return severity === 'red' ? 'bg-red-500' : 'bg-amber-500';
     };

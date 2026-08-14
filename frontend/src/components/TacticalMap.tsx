@@ -14,6 +14,13 @@ export function TacticalMap() {
     const [isDragging, setIsDragging] = useState(false);
     const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
     const mapRef = useRef<HTMLDivElement>(null);
+    
+    // Live time for relative timestamps
+    const [now, setNow] = useState(() => Date.now());
+    useEffect(() => {
+        const timer = setInterval(() => setNow(Date.now()), 60000);
+        return () => clearInterval(timer);
+    }, []);
 
     const filteredPuroks = puroks.filter(p => {
         if (filter === 'ALL') return true;
@@ -45,7 +52,7 @@ export function TacticalMap() {
     };
 
     const formatTime = (date: Date) => {
-        const diffMs = Date.now() - date.getTime();
+        const diffMs = now - date.getTime();
         const diffMins = Math.floor(diffMs / 60000);
         if (diffMins < 1) return 'Just now';
         if (diffMins < 60) return `${diffMins}m ago`;
@@ -98,7 +105,7 @@ export function TacticalMap() {
     return (
         <main 
             ref={mapRef}
-            className="flex-1 min-h-[400px] lg:min-h-0 bg-surface-container border border-outline-variant rounded-sm relative flex flex-col overflow-hidden select-none cursor-move" 
+            className="flex-1 min-h-[400px] lg:min-h-0 bg-surface-container border border-outline-variant rounded-sm relative flex flex-col overflow-hidden select-none cursor-default" 
             onClick={() => setSelectedPurokId(null)}
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
