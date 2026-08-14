@@ -121,4 +121,17 @@
   
   .text-display-telemetry { @apply text-3xl leading-[40px] tracking-tight font-bold; }
   .font-display-telemetry { @apply font-mono; }
+
+  /* Responsive Parallelograms */
+  .kpi-shape-0 { clip-path: polygon(0 0, 100% 0, calc(100% - 32px) 100%, 0 100%); }
+  .kpi-shape-1 { clip-path: polygon(32px 0, 100% 0, 100% 100%, 0 100%); }
+  .kpi-shape-2 { clip-path: polygon(0 0, 100% 0, calc(100% - 32px) 100%, 0 100%); }
+  .kpi-shape-3 { clip-path: polygon(32px 0, 100% 0, 100% 100%, 0 100%); }
+
+  @media (min-width: 1024px) {
+    .kpi-shape-0 { clip-path: polygon(0 0, 100% 0, calc(100% - 32px) 100%, 0 100%); }
+    .kpi-shape-1 { clip-path: polygon(32px 0, 100% 0, calc(100% - 32px) 100%, 0 100%); }
+    .kpi-shape-2 { clip-path: polygon(32px 0, 100% 0, calc(100% - 32px) 100%, 0 100%); }
+    .kpi-shape-3 { clip-path: polygon(32px 0, 100% 0, 100% 100%, 0 100%); }
+  }
 }
