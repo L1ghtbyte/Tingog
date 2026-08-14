@@ -5,6 +5,8 @@ import { AISitRep } from './components/AISitRep';
 import { TacticalMap } from './components/TacticalMap';
 import { PacketStream } from './components/PacketStream';
 
+import { TingogProvider } from './context/TingogContext';
+
 function App() {
     const [isDarkMode, setIsDarkMode] = useState(() => {
         if (typeof window !== 'undefined') {
@@ -31,15 +33,17 @@ function App() {
     const toggleTheme = () => setIsDarkMode(prev => !prev);
 
     return (
-        <div className="bg-background text-on-surface h-screen w-screen overflow-hidden flex flex-col font-body-md select-none">
-            <Header toggleTheme={toggleTheme} isDarkMode={isDarkMode} />
-            <KPIStrip />
-            <div className="flex-1 flex gap-2 p-2 overflow-hidden bg-background">
-                <AISitRep />
-                <TacticalMap />
-                <PacketStream />
+        <TingogProvider>
+            <div className="bg-background text-on-surface h-screen w-screen overflow-hidden flex flex-col font-body-md select-none">
+                <Header toggleTheme={toggleTheme} isDarkMode={isDarkMode} />
+                <KPIStrip />
+                <div className="flex-1 flex gap-2 p-2 overflow-hidden bg-background">
+                    <AISitRep />
+                    <TacticalMap />
+                    <PacketStream />
+                </div>
             </div>
-        </div>
+        </TingogProvider>
     );
 }
 

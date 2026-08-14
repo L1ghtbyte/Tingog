@@ -1,4 +1,32 @@
+import { useTingog } from '../context/TingogContext';
+
 export function AISitRep() {
+    const { anomalies } = useTingog();
+
+    const getAnomalyIcon = (type: string) => {
+        switch (type) {
+            case 'CLUSTER': return 'warning';
+            case 'SILENCE': return 'sensors_off';
+            default: return 'info';
+        }
+    };
+
+    const getAnomalyColor = (severity: string) => {
+        return severity === 'red' ? 'text-red-500' : 'text-amber-500';
+    };
+
+    const getAnomalyBorder = (severity: string) => {
+        return severity === 'red' ? 'border-red-500/50' : 'border-amber-500/50';
+    };
+    
+    const getAnomalyBg = (severity: string) => {
+        return severity === 'red' ? 'bg-red-500' : 'bg-amber-500';
+    };
+    
+    const getAnomalyHeaderColor = (severity: string) => {
+        return severity === 'red' ? 'text-red-400' : 'text-amber-400';
+    };
+
     return (
         <aside className="w-[320px] bg-surface-container border border-outline-variant flex flex-col rounded-sm shrink-0">
             <div className="p-3 border-b border-outline-variant flex items-center justify-between">
@@ -10,35 +38,22 @@ export function AISitRep() {
             </div>
             
             <div className="p-3 flex flex-col gap-3 overflow-y-auto">
-                <div className="bg-surface-container-high border border-red-500/50 rounded-sm p-3 relative">
-                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-red-500"></div>
-                    <div className="flex items-start gap-2 mb-2 pl-2">
-                        <span className="material-symbols-outlined text-red-500 text-sm mt-0.5">warning</span>
-                        <h3 className="text-label-caps font-label-caps text-red-400">🚨 CLUSTER ANOMALY DETECTED</h3>
+                {anomalies.map(anm => (
+                    <div key={anm.id} className={`bg-surface-container-high border ${getAnomalyBorder(anm.severity)} rounded-sm p-3 relative`}>
+                        <div className={`absolute left-0 top-0 bottom-0 w-1 ${getAnomalyBg(anm.severity)}`}></div>
+                        <div className="flex items-start gap-2 mb-2 pl-2">
+                            <span className={`material-symbols-outlined ${getAnomalyColor(anm.severity)} text-sm mt-0.5`}>{getAnomalyIcon(anm.type)}</span>
+                            <h3 className={`text-label-caps font-label-caps ${getAnomalyHeaderColor(anm.severity)}`}>{anm.title}</h3>
+                        </div>
+                        <p className="text-data-tabular font-data-tabular text-on-surface mb-3 pl-2 leading-relaxed">
+                            {anm.description}
+                        </p>
+                        <button className={`ml-2 bg-background border border-outline-variant hover:border-${anm.severity === 'red' ? 'primary' : 'amber-500'} text-on-surface text-label-caps font-label-caps px-3 py-1.5 transition-colors w-full flex items-center justify-center gap-2`}>
+                            <span className="material-symbols-outlined text-[16px]">{anm.type === 'CLUSTER' ? 'visibility' : 'campaign'}</span>
+                            {anm.type === 'CLUSTER' ? `VIEW AFFECTED PUROKS` : 'ALERT BARANGAY TANOD'}
+                        </button>
                     </div>
-                    <p className="text-data-tabular font-data-tabular text-on-surface mb-3 pl-2 leading-relaxed">
-                        14 households pressed <span className="text-amber-400 font-bold">TUBIG</span> in Sitio Looc. Probable water line failure.
-                    </p>
-                    <button className="ml-2 bg-background border border-outline-variant hover:border-primary text-on-surface text-label-caps font-label-caps px-3 py-1.5 transition-colors w-full flex items-center justify-center gap-2">
-                        <span className="material-symbols-outlined text-[16px]">visibility</span>
-                        VIEW 14 HOUSEHOLDS
-                    </button>
-                </div>
-
-                <div className="bg-surface-container-high border border-amber-500/50 rounded-sm p-3 relative">
-                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-500"></div>
-                    <div className="flex items-start gap-2 mb-2 pl-2">
-                        <span className="material-symbols-outlined text-amber-500 text-sm mt-0.5">sensors_off</span>
-                        <h3 className="text-label-caps font-label-caps text-amber-400">⚠️ SILENCE ANOMALY</h3>
-                    </div>
-                    <p className="text-data-tabular font-data-tabular text-on-surface mb-3 pl-2 leading-relaxed">
-                        HH-042 and 5 adjacent nodes silent {">"} 9h. Potential relay failure.
-                    </p>
-                    <button className="ml-2 bg-background border border-outline-variant hover:border-amber-500 text-on-surface text-label-caps font-label-caps px-3 py-1.5 transition-colors w-full flex items-center justify-center gap-2">
-                        <span className="material-symbols-outlined text-[16px]">campaign</span>
-                        ALERT BARANGAY TANOD
-                    </button>
-                </div>
+                ))}
             </div>
         </aside>
     );
