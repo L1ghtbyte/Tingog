@@ -50,8 +50,10 @@ export function AISitRep() {
                             {anm.description}
                         </p>
                         
-                        <button className="btn-shape mt-2 bg-surface-container-highest hover:bg-surface-dim text-on-surface text-[10px] font-bold tracking-widest px-4 py-2.5 transition-colors w-full flex items-center justify-center">
-                            {anm.type === 'CLUSTER' ? 'VIEW AFFECTED PUROKS' : anm.type === 'ESCALATION' ? 'DISPATCH IMMEDIATE RELIEF' : 'ALERT BARANGAY TANOD'}
+                        <button className="mt-3 bg-surface-container-highest hover:bg-surface-dim border border-outline-variant px-4 py-2.5 transition-colors w-full flex items-center justify-center transform skew-x-[12deg] mx-1">
+                            <span className="inline-block transform -skew-x-[12deg] text-on-surface text-[10px] font-bold tracking-widest">
+                                {anm.type === 'CLUSTER' ? 'VIEW AFFECTED PUROKS' : anm.type === 'ESCALATION' ? 'DISPATCH IMMEDIATE RELIEF' : 'ALERT BARANGAY TANOD'}
+                            </span>
                         </button>
                     </div>
                 ))}
