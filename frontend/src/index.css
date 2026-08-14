@@ -134,4 +134,7 @@
     .kpi-shape-2 { clip-path: polygon(32px 0, 100% 0, calc(100% - 32px) 100%, 0 100%); }
     .kpi-shape-3 { clip-path: polygon(32px 0, 100% 0, 100% 100%, 0 100%); }
   }
+
+  /* Forward slanted button */
+  .btn-shape { clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 100%, 12px 100%); }
 }

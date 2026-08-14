@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 
 // --- DATA TYPES ---
 export type NeedType = 'TABANG' | 'TUBIG' | 'TAMBAL' | 'PAGKAON' | 'LUWAS';
@@ -31,7 +31,7 @@ export interface Packet {
 
 export interface Anomaly {
     id: string;
-    type: 'CLUSTER' | 'SILENCE' | 'PATTERN';
+    type: 'CLUSTER' | 'SILENCE' | 'PATTERN' | 'ESCALATION';
     title: string;
     description: string;
     related_purok_ids: string[];
@@ -78,7 +78,7 @@ const MOCK_ANOMALIES: Anomaly[] = [
     {
         id: 'anm-1',
         type: 'CLUSTER',
-        title: '🚨 CLUSTER ANOMALY DETECTED',
+        title: 'CLUSTER ANOMALY DETECTED',
         description: '3 neighboring puroks pressed TUBIG within 45 minutes. Probable water line failure.',
         related_purok_ids: ['p-3', 'p-5', 'p-7'],
         severity: 'red'
@@ -86,10 +86,18 @@ const MOCK_ANOMALIES: Anomaly[] = [
     {
         id: 'anm-2',
         type: 'SILENCE',
-        title: '⚠️ SILENCE ANOMALY',
+        title: 'SILENCE ANOMALY',
         description: 'Purok 9 has not sent a heartbeat in 9 hours; the last press before that was a held TABANG.',
         related_purok_ids: ['p-9'],
         severity: 'amber'
+    },
+    {
+        id: 'anm-3',
+        type: 'ESCALATION',
+        title: 'SEVERITY ESCALATION',
+        description: 'Purok Mendoza (baseline vulnerability > 0) has reported TUBIG for over 24 hours with no dispatch.',
+        related_purok_ids: ['p-214'],
+        severity: 'red'
     }
 ];
 
@@ -129,7 +137,7 @@ export function TingogProvider({ children }: { children: ReactNode }) {
                         timestamp: new Date(),
                         acked: false
                     };
-                    
+
                     setPackets(prev => [newPacket, ...prev]);
                     setPuroks(prev => prev.map(p => {
                         if (p.id === randomPurok.id) {
