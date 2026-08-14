@@ -1,9 +1,89 @@
 @import "tailwindcss";
-@config "../tailwind.config.js";
+
+@theme {
+  --font-inter: "Inter", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+  --font-sans: "Inter", sans-serif;
+
+  --color-surface: var(--surface);
+  --color-surface-dim: var(--surface-dim);
+  --color-surface-bright: var(--surface-bright);
+  --color-surface-container-lowest: var(--surface-container-lowest);
+  --color-surface-container-low: var(--surface-container-low);
+  --color-surface-container: var(--surface-container);
+  --color-surface-container-high: var(--surface-container-high);
+  --color-surface-container-highest: var(--surface-container-highest);
+  --color-on-surface: var(--on-surface);
+  --color-on-surface-variant: var(--on-surface-variant);
+  --color-inverse-surface: var(--inverse-surface);
+  --color-inverse-on-surface: var(--inverse-on-surface);
+  --color-outline: var(--outline);
+  --color-outline-variant: var(--outline-variant);
+  --color-surface-tint: var(--surface-tint);
+  --color-primary: var(--primary);
+  --color-on-primary: var(--on-primary);
+  --color-primary-container: var(--primary-container);
+  --color-on-primary-container: var(--on-primary-container);
+  --color-inverse-primary: var(--inverse-primary);
+  --color-background: var(--background);
+  --color-on-background: var(--on-background);
+}
+
+:root {
+  /* LIGHT MODE PALETTE */
+  --surface: #f8f9fa;
+  --surface-dim: #e9ecef;
+  --surface-bright: #ffffff;
+  --surface-container-lowest: #ffffff;
+  --surface-container-low: #f8f9fa;
+  --surface-container: #f1f3f5;
+  --surface-container-high: #e9ecef;
+  --surface-container-highest: #dee2e6;
+  --on-surface: #212529;
+  --on-surface-variant: #495057;
+  --inverse-surface: #343a40;
+  --inverse-on-surface: #f8f9fa;
+  --outline: #adb5bd;
+  --outline-variant: #ced4da;
+  --surface-tint: #ff5722;
+  --primary: #ff5722;
+  --on-primary: #ffffff;
+  --primary-container: #ffdbd1;
+  --on-primary-container: #541200;
+  --inverse-primary: #ffb5a0;
+  --background: #f8f9fa;
+  --on-background: #212529;
+}
+
+.dark {
+  /* DARK MODE PALETTE */
+  --surface: #1e100c;
+  --surface-dim: #1e100c;
+  --surface-bright: #483530;
+  --surface-container-lowest: #180b07;
+  --surface-container-low: #271813;
+  --surface-container: #2c1c17;
+  --surface-container-high: #372621;
+  --surface-container-highest: #43302b;
+  --on-surface: #fadcd4;
+  --on-surface-variant: #e4beb4;
+  --inverse-surface: #fadcd4;
+  --inverse-on-surface: #3e2c27;
+  --outline: #ab8980;
+  --outline-variant: #5b4039;
+  --surface-tint: #ffb5a0;
+  --primary: #ffb5a0;
+  --on-primary: #5f1500;
+  --primary-container: #ff5722;
+  --on-primary-container: #541200;
+  --inverse-primary: #b02f00;
+  --background: #1e100c;
+  --on-background: #fadcd4;
+}
 
 @layer base {
   body {
-    @apply bg-background text-on-surface h-screen w-screen overflow-hidden flex flex-col font-body-md select-none;
+    @apply bg-background text-on-surface h-screen w-screen overflow-hidden flex flex-col select-none font-inter;
   }
 }
 
@@ -16,7 +96,6 @@
     100% { transform: scale(2); opacity: 0; }
 }
 
-/* Custom scrollbar for stream */
 ::-webkit-scrollbar {
     width: 4px;
 }
@@ -25,4 +104,21 @@
 }
 ::-webkit-scrollbar-thumb {
     @apply bg-outline-variant;
+}
+
+@layer utilities {
+  .text-headline-md { @apply text-lg leading-6 font-semibold; }
+  .font-headline-md { @apply font-inter; }
+  
+  .text-headline-lg { @apply text-2xl leading-8 font-bold; }
+  .font-headline-lg { @apply font-inter; }
+  
+  .text-data-tabular { @apply text-[13px] leading-[18px] font-normal; }
+  .font-data-tabular { @apply font-mono; }
+  
+  .text-label-caps { @apply text-[12px] leading-[16px] tracking-[0.05em] font-semibold; }
+  .font-label-caps { @apply font-mono; }
+  
+  .text-display-telemetry { @apply text-3xl leading-[40px] tracking-tight font-bold; }
+  .font-display-telemetry { @apply font-mono; }
 }
