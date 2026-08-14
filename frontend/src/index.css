@@ -137,4 +137,30 @@
 
   /* Forward slanted button */
   .btn-shape { clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 100%, 12px 100%); }
+
+  .radar-sweep {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 200%;
+    height: 200%;
+    background: conic-gradient(from 0deg, transparent 70%, var(--color-primary) 100%);
+    opacity: 0.15;
+    transform-origin: center;
+    animation: radar-spin 4s linear infinite;
+    pointer-events: none;
+  }
+
+  @keyframes radar-spin {
+    from { transform: translate(-50%, -50%) rotate(0deg); }
+    to { transform: translate(-50%, -50%) rotate(360deg); }
+  }
+
+  .tactical-grid {
+    background-image: 
+      linear-gradient(to right, var(--color-outline-variant) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--color-outline-variant) 1px, transparent 1px);
+    background-size: 40px 40px;
+    opacity: 0.2;
+  }
 }
