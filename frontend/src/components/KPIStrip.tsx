@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { useTingog } from '../context/TingogContext';
+import { StatisticsModal } from './StatisticsModal';
 
 const Sparkline = ({ type, color }: { type: string, color: string }) => {
     let path: string;
@@ -15,8 +17,11 @@ const Sparkline = ({ type, color }: { type: string, color: string }) => {
     );
 };
 
+type ModalTab = 'TOTAL' | 'CRITICAL' | 'NEEDS' | 'SILENT' | null;
+
 export function KPIStrip() {
     const { puroks } = useTingog();
+    const [activeTab, setActiveTab] = useState<ModalTab>(null);
 
     const totalHH = puroks.reduce((acc, p) => acc + p.baseline_household_count, 0);
     const criticalCount = puroks.filter(p => p.active_needs.includes('TABANG')).length;
@@ -30,52 +35,71 @@ export function KPIStrip() {
     const silentCount = puroks.filter(p => p.status === 'unknown' || p.hours_since_heartbeat > 6).length;
 
     return (
-        <div className="grid grid-cols-2 lg:flex gap-3 p-4 bg-background shrink-0 border-b border-outline-variant">
-            
-            {/* Box 1: Total HH */}
-            <div className="flex-1 relative min-h-[80px] bg-surface-container border border-outline-variant transform -skew-x-[12deg] hover:border-primary/50 transition-colors">
-                <div className="transform skew-x-[12deg] h-full flex flex-col justify-between p-3 lg:px-6">
-                    <span className="text-label-caps font-label-caps text-on-surface-variant relative z-10">TOTAL REGISTERED HH</span>
-                    <span className="text-display-telemetry font-display-telemetry text-on-surface relative z-10">{totalHH.toString().padStart(3, '0')}</span>
-                </div>
-            </div>
+        <>
+            <div className="grid grid-cols-2 lg:flex gap-3 p-4 bg-background shrink-0 border-b border-outline-variant">
+                
+                {/* Box 1: Total HH */}
+                <button 
+                    onClick={() => setActiveTab('TOTAL')}
+                    className="flex-1 relative min-h-[80px] bg-surface-container border border-outline-variant transform -skew-x-[12deg] hover:border-primary/50 transition-colors text-left"
+                >
+                    <div className="transform skew-x-[12deg] h-full flex flex-col justify-between p-3 lg:px-6">
+                        <span className="text-label-caps font-label-caps text-on-surface-variant relative z-10 block">TOTAL REGISTERED HH</span>
+                        <span className="text-display-telemetry font-display-telemetry text-on-surface relative z-10 block">{totalHH.toString().padStart(3, '0')}</span>
+                    </div>
+                </button>
 
-            {/* Box 2: Critical */}
-            <div className="flex-1 relative min-h-[80px] bg-surface-container border border-red-500/50 transform -skew-x-[12deg] overflow-hidden hover:border-red-500 transition-colors">
-                <div className="absolute inset-0 bg-red-500/5"></div>
-                <Sparkline type="critical" color="#EF4444" />
-                <div className="transform skew-x-[12deg] h-full flex flex-col justify-between p-3 lg:px-8 relative z-10">
-                    <span className="text-label-caps font-label-caps text-red-400">CRITICAL (TABANG)</span>
-                    <span className={`text-display-telemetry font-display-telemetry text-[#EF4444] ${criticalCount > 0 ? 'animate-pulse' : ''}`}>
-                        {criticalCount.toString().padStart(2, '0')}
-                    </span>
-                </div>
-            </div>
+                {/* Box 2: Critical */}
+                <button 
+                    onClick={() => setActiveTab('CRITICAL')}
+                    className="flex-1 relative min-h-[80px] bg-surface-container border border-red-500/50 transform -skew-x-[12deg] overflow-hidden hover:border-red-500 transition-colors text-left"
+                >
+                    <div className="absolute inset-0 bg-red-500/5 pointer-events-none"></div>
+                    <Sparkline type="critical" color="#EF4444" />
+                    <div className="transform skew-x-[12deg] h-full flex flex-col justify-between p-3 lg:px-8 relative z-10">
+                        <span className="text-label-caps font-label-caps text-red-400 block">CRITICAL (TABANG)</span>
+                        <span className={`text-display-telemetry font-display-telemetry text-[#EF4444] block ${criticalCount > 0 ? 'animate-pulse' : ''}`}>
+                            {criticalCount.toString().padStart(2, '0')}
+                        </span>
+                    </div>
+                </button>
 
-            {/* Box 3: Needs */}
-            <div className="flex-1 relative min-h-[80px] bg-surface-container border border-amber-500/50 transform -skew-x-[12deg] overflow-hidden hover:border-amber-500 transition-colors">
-                <div className="absolute inset-0 bg-amber-500/5"></div>
-                <Sparkline type="needs" color="#F59E0B" />
-                <div className="transform skew-x-[12deg] h-full flex flex-col justify-between p-3 lg:px-8 relative z-10">
-                    <span className="text-label-caps font-label-caps text-amber-400">PENDING RESOURCE</span>
-                    <span className="text-display-telemetry font-display-telemetry text-[#F59E0B]">
-                        {resourceNeeds.toString().padStart(2, '0')}
-                    </span>
-                </div>
-            </div>
+                {/* Box 3: Needs */}
+                <button 
+                    onClick={() => setActiveTab('NEEDS')}
+                    className="flex-1 relative min-h-[80px] bg-surface-container border border-amber-500/50 transform -skew-x-[12deg] overflow-hidden hover:border-amber-500 transition-colors text-left"
+                >
+                    <div className="absolute inset-0 bg-amber-500/5 pointer-events-none"></div>
+                    <Sparkline type="needs" color="#F59E0B" />
+                    <div className="transform skew-x-[12deg] h-full flex flex-col justify-between p-3 lg:px-8 relative z-10">
+                        <span className="text-label-caps font-label-caps text-amber-400 block">PENDING RESOURCE</span>
+                        <span className="text-display-telemetry font-display-telemetry text-[#F59E0B] block">
+                            {resourceNeeds.toString().padStart(2, '0')}
+                        </span>
+                    </div>
+                </button>
 
-            {/* Box 4: Silent */}
-            <div className="flex-1 relative min-h-[80px] bg-surface-container border border-[#64748B]/50 transform -skew-x-[12deg] overflow-hidden hover:border-[#64748B] transition-colors">
-                <div className="absolute inset-0 bg-[#64748B]/5"></div>
-                <Sparkline type="silent" color="#64748B" />
-                <div className="transform skew-x-[12deg] h-full flex flex-col justify-between p-3 lg:px-8 relative z-10">
-                    <span className="text-label-caps font-label-caps text-[#64748B]">UNREACHABLE ({">"}6H)</span>
-                    <span className="text-display-telemetry font-display-telemetry text-[#64748B]">
-                        {silentCount.toString().padStart(2, '0')}
-                    </span>
-                </div>
-            </div>
+                {/* Box 4: Silent */}
+                <button 
+                    onClick={() => setActiveTab('SILENT')}
+                    className="flex-1 relative min-h-[80px] bg-surface-container border border-[#64748B]/50 transform -skew-x-[12deg] overflow-hidden hover:border-[#64748B] transition-colors text-left"
+                >
+                    <div className="absolute inset-0 bg-[#64748B]/5 pointer-events-none"></div>
+                    <Sparkline type="silent" color="#64748B" />
+                    <div className="transform skew-x-[12deg] h-full flex flex-col justify-between p-3 lg:px-8 relative z-10">
+                        <span className="text-label-caps font-label-caps text-[#64748B] block">UNREACHABLE ({">"}6H)</span>
+                        <span className="text-display-telemetry font-display-telemetry text-[#64748B] block">
+                            {silentCount.toString().padStart(2, '0')}
+                        </span>
+                    </div>
+                </button>
 
-        </div>
+            </div>
+            <StatisticsModal 
+                isOpen={activeTab !== null} 
+                onClose={() => setActiveTab(null)} 
+                activeTab={activeTab} 
+            />
+        </>
     );
 }
