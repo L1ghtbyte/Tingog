@@ -40,7 +40,7 @@ export function PacketStream() {
     };
 
     return (
-        <aside className="w-[360px] bg-surface-container border border-outline-variant flex flex-col rounded-sm shrink-0">
+        <aside className="w-full lg:w-[360px] h-[400px] lg:h-auto bg-surface-container border border-outline-variant flex flex-col rounded-sm shrink-0">
             <div className="p-3 border-b border-outline-variant flex justify-between items-center">
                 <h2 className="text-headline-md font-headline-md text-primary flex items-center gap-2">
                     <span className="material-symbols-outlined text-xl">settings_input_antenna</span>

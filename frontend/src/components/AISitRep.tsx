@@ -28,7 +28,7 @@ export function AISitRep() {
     };
 
     return (
-        <aside className="w-[320px] bg-surface-container border border-outline-variant flex flex-col rounded-sm shrink-0">
+        <aside className="w-full lg:w-[320px] max-h-[300px] lg:max-h-none bg-surface-container border border-outline-variant flex flex-col rounded-sm shrink-0">
             <div className="p-3 border-b border-outline-variant flex items-center justify-between">
                 <h2 className="text-headline-md font-headline-md text-primary flex items-center gap-2">
                     <span className="material-symbols-outlined text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>emergency</span>

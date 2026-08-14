@@ -53,8 +53,8 @@ export function TacticalMap() {
     };
 
     return (
-        <main className="flex-1 bg-surface-container border border-outline-variant rounded-sm relative flex flex-col overflow-hidden" onClick={() => setSelectedPurokId(null)}>
-            <div className="absolute top-3 left-3 z-10 flex gap-2">
+        <main className="flex-1 min-h-[400px] lg:min-h-0 bg-surface-container border border-outline-variant rounded-sm relative flex flex-col overflow-hidden" onClick={() => setSelectedPurokId(null)}>
+            <div className="absolute top-3 left-3 right-3 z-10 flex flex-wrap gap-2">
                 <button onClick={() => setFilter('ALL')} className={`bg-surface-container/90 border px-3 py-1.5 text-label-caps font-label-caps backdrop-blur-sm transition-colors ${filter === 'ALL' ? 'border-primary text-primary' : 'border-outline-variant text-on-surface-variant hover:text-on-surface'}`}>ALL</button>
                 <button onClick={() => setFilter('CRITICAL')} className={`bg-surface-container/90 border px-3 py-1.5 text-label-caps font-label-caps backdrop-blur-sm transition-colors ${filter === 'CRITICAL' ? 'border-red-500 text-red-500' : 'border-outline-variant text-on-surface-variant hover:text-on-surface'}`}>CRITICAL</button>
                 <button onClick={() => setFilter('NEEDS')} className={`bg-surface-container/90 border px-3 py-1.5 text-label-caps font-label-caps backdrop-blur-sm transition-colors ${filter === 'NEEDS' ? 'border-amber-500 text-amber-500' : 'border-outline-variant text-on-surface-variant hover:text-on-surface'}`}>NEEDS</button>

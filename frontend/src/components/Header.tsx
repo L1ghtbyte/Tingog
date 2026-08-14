@@ -26,12 +26,12 @@ export function Header({ toggleTheme, isDarkMode }: HeaderProps) {
     }).toUpperCase();
 
     return (
-        <header className="bg-surface border-b border-outline-variant h-[56px] flex justify-between items-center w-full px-gutter z-50 shrink-0">
+        <header className="flex flex-wrap gap-2 justify-between items-center p-3 bg-surface border-b border-outline-variant shrink-0">
             <div className="flex items-center gap-4">
                 <img alt="Tingog Brand Logo" className="h-8 w-8 object-contain rounded-sm bg-surface-container p-1 border border-outline-variant" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDcGCT-IQenDWK_ePkDUKyMq961Wp4NVyEDd_PCLJeQwgbbpO0IMlmlfiaVD40MA5YPLVwSO8kDEt5R6LMqE3r0UzW-ZYYg4PkaU94xTnIbMv8Y-dgCcGozmS8UApwHilyqcJ47vQwmNaOuK-qP8dy44AlJpIibf3Gbgsb7G2nyUGq0LjhMoITPVZdVe3sxmeFFN3RWg267JFcGSCohmsyOVgry0p3Noad523Zk63JoyfHlFvfc-tsh" />
-                <div>
+                <div className="flex flex-col">
                     <h1 className="text-headline-lg font-headline-lg font-bold text-primary tracking-tighter leading-none">TINGOG</h1>
-                    <span className="text-label-caps font-label-caps text-on-surface-variant leading-none">HOUSEHOLD EMERGENCY RESPONSE SYSTEM</span>
+                    <span className="hidden sm:block text-label-caps font-label-caps text-on-surface-variant leading-none">HOUSEHOLD EMERGENCY RESPONSE SYSTEM</span>
                 </div>
             </div>
             

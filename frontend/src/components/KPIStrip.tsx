@@ -15,7 +15,7 @@ export function KPIStrip() {
     const silentCount = puroks.filter(p => p.status === 'unknown' || p.hours_since_heartbeat > 6).length;
 
     return (
-        <div className="flex gap-2 p-2 bg-background shrink-0 border-b border-outline-variant">
+        <div className="grid grid-cols-2 lg:flex gap-2 p-2 bg-background shrink-0 border-b border-outline-variant">
             <div className="flex-1 bg-surface-container border border-outline-variant rounded-sm p-3 flex flex-col justify-between">
                 <span className="text-label-caps font-label-caps text-on-surface-variant">TOTAL REGISTERED HH</span>
                 <span className="text-display-telemetry font-display-telemetry text-on-surface">{totalHH.toString().padStart(3, '0')}</span>

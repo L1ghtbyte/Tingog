@@ -83,7 +83,7 @@
 
 @layer base {
   body {
-    @apply bg-background text-on-surface h-screen w-screen overflow-hidden flex flex-col select-none font-inter;
+    @apply bg-background text-on-surface min-h-screen w-full flex flex-col select-none font-inter overflow-x-hidden;
   }
 }
 
