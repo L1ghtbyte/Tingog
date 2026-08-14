@@ -37,7 +37,7 @@ function App() {
             <div className="bg-background text-on-surface min-h-screen lg:h-screen w-full flex flex-col font-body-md select-none overflow-x-hidden">
                 <Header toggleTheme={toggleTheme} isDarkMode={isDarkMode} />
                 <KPIStrip />
-                <div className="flex-1 flex flex-col lg:flex-row gap-2 p-2 overflow-y-auto lg:overflow-hidden bg-background">
+                <div className="flex-1 flex flex-col lg:flex-row gap-2 p-2 lg:overflow-hidden bg-background">
                     <AISitRep />
                     <TacticalMap />
                     <PacketStream />
