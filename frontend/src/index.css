@@ -170,3 +170,9 @@
     opacity: 0.2;
   }
 }
+
+/* Leaflet Customizations */
+.custom-popup .leaflet-popup-content-wrapper { background: transparent; box-shadow: none; padding: 0; }
+.custom-popup .leaflet-popup-content { margin: 0; }
+.custom-popup .leaflet-popup-tip-container { display: none; }
+

@@ -1,5 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { useTingog, type Purok } from '../context/TingogContext';
+import { MapContainer, TileLayer, Marker, Popup, useMapEvents, useMap } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 
 type MapFilter = 'ALL' | 'CRITICAL' | 'NEEDS' | 'SILENT';
 
@@ -8,13 +11,6 @@ export function TacticalMap() {
     const [filter, setFilter] = useState<MapFilter>('ALL');
     const [selectedPurokId, setSelectedPurokId] = useState<string | null>(null);
 
-    // Pan & Zoom State
-    const [zoom, setZoom] = useState(1);
-    const [pan, setPan] = useState({ x: 0, y: 0 });
-    const [isDragging, setIsDragging] = useState(false);
-    const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-    const mapRef = useRef<HTMLDivElement>(null);
-    
     // Live time for relative timestamps
     const [now, setNow] = useState(() => Date.now());
     useEffect(() => {
@@ -61,59 +57,45 @@ export function TacticalMap() {
         return `${diffHrs}h ${remMins}m ago`;
     };
 
-    const handlePinClick = (id: string, e: React.MouseEvent) => {
-        e.stopPropagation();
-        setSelectedPurokId(id === selectedPurokId ? null : id);
-    };
-
-    // Pan & Zoom Handlers
-    const handleMouseDown = (e: React.MouseEvent) => {
-        if (e.button !== 0) return; // Only left click
-        setIsDragging(true);
-        setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
-    };
-
-    const handleMouseMove = (e: React.MouseEvent) => {
-        if (isDragging) {
-            setPan({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
-        }
-    };
-
-    const handleMouseUp = () => setIsDragging(false);
-
-    const handleWheel = (e: WheelEvent) => {
-        e.preventDefault();
-        const zoomSensitivity = 0.001;
-        setZoom(z => Math.max(0.5, Math.min(3, z - e.deltaY * zoomSensitivity)));
-    };
-
-    useEffect(() => {
-        const mapEl = mapRef.current;
-        if (mapEl) {
-            mapEl.addEventListener('wheel', handleWheel, { passive: false });
-            return () => mapEl.removeEventListener('wheel', handleWheel);
-        }
-    }, []);
-
-    const resetView = () => {
-        setZoom(1);
-        setPan({ x: 0, y: 0 });
-    };
-
     const filterOptions: MapFilter[] = ['ALL', 'CRITICAL', 'NEEDS', 'SILENT'];
 
+    // Create a custom icon for Leaflet using our div structure
+    const createCustomIcon = (p: Purok) => {
+        const isCritical = p.active_needs.includes('TABANG');
+        const style = getPinStyle(p);
+        
+        const html = `
+            <div class="relative w-4 h-4 rotate-45 border cursor-pointer z-20 hover:scale-125 transition-transform ${style}">
+                ${isCritical ? '<div class="absolute inset-0 rounded-full border border-red-500 animate-ping opacity-75"></div>' : ''}
+            </div>
+        `;
+
+        return L.divIcon({
+            html,
+            className: 'custom-leaflet-icon',
+            iconSize: [16, 16],
+            iconAnchor: [8, 8], // Center of the 16x16 div
+        });
+    };
+
+    // Sub-component to handle map reset
+    function MapController() {
+        const map = useMap();
+        
+        useEffect(() => {
+            // Expose a way to reset view if needed
+            (window as any).resetMapView = () => {
+                map.setView([11.0500, 124.0040], 15);
+            };
+        }, [map]);
+
+        return null;
+    }
+
     return (
-        <main 
-            ref={mapRef}
-            className="flex-1 min-h-[400px] lg:min-h-0 bg-surface-container border border-outline-variant rounded-sm relative flex flex-col overflow-hidden select-none cursor-default" 
-            onClick={() => setSelectedPurokId(null)}
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseUp}
-        >
+        <main className="flex-1 min-h-[400px] lg:min-h-0 bg-surface-container border border-outline-variant rounded-sm relative flex flex-col overflow-hidden select-none cursor-default">
             {/* Filters */}
-            <div className="absolute top-3 left-3 z-30 flex flex-wrap gap-3 pointer-events-none">
+            <div className="absolute top-3 left-3 z-[1000] flex flex-wrap gap-3 pointer-events-none">
                 {filterOptions.map(f => (
                     <button 
                         key={f}
@@ -127,37 +109,40 @@ export function TacticalMap() {
                 ))}
             </div>
 
-            {/* Map Canvas (Pans & Zooms) */}
-            <div className="absolute inset-0 transition-transform duration-75 origin-center" style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})` }}>
-                
-                {/* Background Grid & Restored Map Image */}
-                <div className="absolute inset-[-50%] tactical-grid"></div>
-                <div className="absolute inset-[-50%] bg-cover bg-center opacity-25 grayscale dark:invert-0 invert pointer-events-none" style={{ backgroundImage: "url('https://lh3.googleusercontent.com/aida-public/AB6AXuAkCQbXPMsVBQJxDssNyKnJukItvzocrJBwsMoV39ktms3K-nvSMAB3uoJXpc_oPJLYAiZfvH3XXbXGGZZiSsj0lOhJy3JkLsZhpXw-rDyp6Kuw-bAUDuoEOMm_Ms5VD8pi5Ifr0DmTyj4yZXHierqvtZvKLI-hSByXIkrtII4BHiJeeg3_-fczPDp8uPKGokfekb0thtpsN54wufHcGPRRIhks1s_C4oU6bQJToC_f5EgUAPMofvM6')" }}></div>
-                
-                {/* Connection Lines (Simulated Star Topology to center Gateway) */}
-                <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-20">
-                    {filteredPuroks.map(p => (
-                        <line key={`line-${p.id}`} x1="50%" y1="50%" x2={`${p.coordinates.x}%`} y2={`${p.coordinates.y}%`} stroke="var(--color-primary)" strokeWidth="1" strokeDasharray="4 4" />
-                    ))}
-                    <circle cx="50%" cy="50%" r="4" fill="var(--color-primary)" />
-                </svg>
+            <MapContainer 
+                center={[11.0500, 124.0040]} // Centered around Bogo, Cebu
+                zoom={15} 
+                style={{ width: '100%', height: '100%' }}
+                zoomControl={false} // We will use our custom zoom controls if needed or none
+            >
+                {/* Dark mode friendly map tiles (CartoDB Dark Matter) */}
+                <TileLayer
+                    url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                />
+                <MapController />
 
-                {/* Nodes */}
                 {filteredPuroks.map(p => {
-                    const isSelected = p.id === selectedPurokId;
                     const isCritical = p.active_needs.includes('TABANG');
                     
                     return (
-                        <div key={p.id} className="absolute group" style={{ top: `${p.coordinates.y}%`, left: `${p.coordinates.x}%`, transform: 'translate(-50%, -50%)' }}>
-                            <div 
-                                onClick={(e) => handlePinClick(p.id, e)}
-                                className={`relative w-4 h-4 rotate-45 border cursor-pointer z-20 hover:scale-125 transition-transform ${getPinStyle(p)}`}
+                        <Marker 
+                            key={p.id} 
+                            position={[p.coordinates.lat, p.coordinates.lng]}
+                            icon={createCustomIcon(p)}
+                            eventHandlers={{
+                                click: () => setSelectedPurokId(p.id)
+                            }}
+                        >
+                            {/* We use Popup for the details instead of absolute divs */}
+                            <Popup 
+                                closeButton={false} 
+                                className="custom-popup" 
+                                offset={[0, -10]}
+                                onOpen={() => setSelectedPurokId(p.id)}
+                                onClose={() => setSelectedPurokId(null)}
                             >
-                                {isCritical && <div className="absolute inset-0 rounded-full border border-red-500 animate-ping opacity-75"></div>}
-                            </div>
-
-                            {isSelected && (
-                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 w-64 bg-surface-container-highest/95 border border-outline-variant backdrop-blur-md p-3 opacity-100 z-30 shadow-xl" style={{ transform: `scale(${1/zoom})`, transformOrigin: 'bottom center' }} onClick={e => e.stopPropagation()}>
+                                <div className="w-64 bg-surface-container-highest/95 border border-outline-variant backdrop-blur-md p-3 shadow-xl">
                                     <div className="flex justify-between items-start mb-2 border-b border-outline-variant pb-2">
                                         <span className="text-label-caps font-label-caps text-on-surface font-bold tracking-widest">{p.device_id}: {p.name}</span>
                                         <span className={`text-label-caps font-label-caps ${getPinTextColor(p)} ${isCritical ? 'animate-pulse' : ''}`}>{formatTime(p.last_event_at)}</span>
@@ -169,7 +154,8 @@ export function TacticalMap() {
                                     </div>
                                     {p.active_needs.length > 0 && (
                                         <button 
-                                            onClick={() => {
+                                            onClick={(e) => {
+                                                e.stopPropagation();
                                                 dispatchResponse(p.id);
                                                 setSelectedPurokId(null);
                                             }}
@@ -178,17 +164,15 @@ export function TacticalMap() {
                                         </button>
                                     )}
                                 </div>
-                            )}
-                        </div>
+                            </Popup>
+                        </Marker>
                     );
                 })}
-            </div>
+            </MapContainer>
 
-            {/* Zoom Controls */}
-            <div className="absolute bottom-3 right-3 z-30 flex flex-col gap-2 pointer-events-none">
-                <button onClick={(e) => { e.stopPropagation(); setZoom(z => Math.min(3, z + 0.5)); }} className="pointer-events-auto w-10 h-10 rounded-full bg-surface-container/90 border border-outline-variant hover:border-primary flex items-center justify-center text-on-surface backdrop-blur-sm transition-colors shadow-lg"><span className="font-bold text-lg leading-none">+</span></button>
-                <button onClick={(e) => { e.stopPropagation(); setZoom(z => Math.max(0.5, z - 0.5)); }} className="pointer-events-auto w-10 h-10 rounded-full bg-surface-container/90 border border-outline-variant hover:border-primary flex items-center justify-center text-on-surface backdrop-blur-sm transition-colors shadow-lg"><span className="font-bold text-lg leading-none">-</span></button>
-                <button onClick={(e) => { e.stopPropagation(); resetView(); }} className="pointer-events-auto mt-1 w-10 h-10 rounded-full bg-surface-container/90 border border-outline-variant hover:border-primary flex items-center justify-center text-on-surface backdrop-blur-sm transition-colors shadow-lg"><span className="material-symbols-outlined text-lg">my_location</span></button>
+            {/* Custom Zoom Controls to match previous design */}
+            <div className="absolute bottom-3 right-3 z-[1000] flex flex-col gap-2 pointer-events-none">
+                <button onClick={(e) => { e.stopPropagation(); (window as any).resetMapView?.(); }} className="pointer-events-auto mt-1 w-10 h-10 rounded-full bg-surface-container/90 border border-outline-variant hover:border-primary flex items-center justify-center text-on-surface backdrop-blur-sm transition-colors shadow-lg"><span className="material-symbols-outlined text-lg">my_location</span></button>
             </div>
         </main>
     );

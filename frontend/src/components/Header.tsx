@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTingog } from '../context/TingogContext';
 
 interface HeaderProps {
     toggleTheme: () => void;
@@ -6,6 +7,7 @@ interface HeaderProps {
 }
 
 export function Header({ toggleTheme, isDarkMode }: HeaderProps) {
+    const { simulateEarthquake, stopSimulation, isSimulating } = useTingog();
     const [timeString, setTimeString] = useState('');
 
     useEffect(() => {
@@ -39,8 +41,23 @@ export function Header({ toggleTheme, isDarkMode }: HeaderProps) {
                 <span className="hidden sm:block text-label-caps font-label-caps text-on-surface-variant leading-none mt-1">DISASTER RESPONSE SYSTEM</span>
             </div>
             
-            {/* Right: Theme Toggle only */}
-            <div className="flex justify-end items-center">
+            {/* Right: Actions and Theme Toggle */}
+            <div className="flex justify-end items-center gap-3">
+                {!isSimulating ? (
+                    <button 
+                        onClick={simulateEarthquake}
+                        className="hidden md:flex items-center gap-2 px-3 py-1 bg-red-500/10 hover:bg-red-500/20 border border-red-500/50 text-red-500 rounded-sm transition-colors text-label-caps font-label-caps font-bold">
+                        <span className="material-symbols-outlined text-[18px]">public</span>
+                        SIMULATE EARTHQUAKE
+                    </button>
+                ) : (
+                    <button 
+                        onClick={stopSimulation}
+                        className="hidden md:flex items-center gap-2 px-3 py-1 bg-surface-container-highest hover:bg-outline-variant border border-outline-variant text-on-surface rounded-sm transition-colors text-label-caps font-label-caps font-bold">
+                        <span className="material-symbols-outlined text-[18px]">stop_circle</span>
+                        STOP SIMULATION
+                    </button>
+                )}
                 <button 
                     onClick={toggleTheme}
                     className="p-2 hover:bg-surface-container-highest transition-colors duration-75 rounded-sm flex items-center justify-center">
