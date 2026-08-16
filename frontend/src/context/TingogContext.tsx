@@ -72,7 +72,7 @@ export function TingogProvider({ children }: { children: ReactNode }) {
     const [packets, setPackets] = useState<Packet[]>([]);
     const [anomalies] = useState<Anomaly[]>([]);
     const [isSimulating, setIsSimulating] = useState(false);
-    const simulationIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const simulationIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     const ackPacket = (id: string) => {
         setPackets(prev => prev.map(p => p.id === id ? { ...p, acked: true } : p));
