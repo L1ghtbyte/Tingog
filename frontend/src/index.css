@@ -176,3 +176,14 @@
 .tingog-popup .leaflet-popup-content { margin: 0; }
 .tingog-popup .leaflet-popup-tip-container { display: none; }
 
+.map-dark {
+    filter: invert(100%) hue-rotate(180deg) sepia(60%) brightness(120%) contrast(110%);
+}
+.map-dark-minimal {
+    filter: sepia(80%) hue-rotate(330deg) brightness(150%) contrast(120%);
+}
+.map-light {
+    filter: sepia(30%) brightness(95%) contrast(110%);
+}
+
+

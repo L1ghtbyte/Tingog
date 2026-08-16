@@ -28,6 +28,9 @@ function Dashboard() {
         return true;
     });
 
+    const [mapStyle, setMapStyle] = useState<'humanitarian' | 'minimal'>('humanitarian');
+    const [isFocusMode, setIsFocusMode] = useState(false);
+
     useEffect(() => {
         const html = document.documentElement;
         if (isDarkMode) {
@@ -40,6 +43,8 @@ function Dashboard() {
     }, [isDarkMode]);
 
     const toggleTheme = () => setIsDarkMode((prev) => !prev);
+    const toggleMapStyle = () => setMapStyle((prev) => (prev === 'humanitarian' ? 'minimal' : 'humanitarian'));
+
     const openBriefing = () => {
         setSeenEscalationCount(escalations.length);
         setIsBriefingMinimized(false);
@@ -55,22 +60,26 @@ function Dashboard() {
 
     return (
         <div className="relative h-dvh w-full overflow-hidden bg-background text-on-surface font-body-md select-none">
-            <TacticalMap filter={mapFilter} />
+            <TacticalMap filter={mapFilter} isDarkMode={isDarkMode} mapStyle={mapStyle} />
 
             {/* The command tools float over the geographic picture instead of competing with it for layout space. */}
-            <div className="pointer-events-none absolute inset-0 z-50">
-                <div className="pointer-events-auto absolute left-3 right-3 top-3 z-30 lg:left-4 lg:right-4 lg:top-4">
-                    <Header toggleTheme={toggleTheme} isDarkMode={isDarkMode} />
+            <div className="pointer-events-none absolute inset-0 z-50 overflow-hidden">
+                <div
+                    className={`pointer-events-auto absolute left-3 right-3 z-30 lg:left-4 lg:right-4 transition-all duration-500 ease-in-out ${isFocusMode ? '-top-20 opacity-0 pointer-events-none' : 'top-3 lg:top-4 opacity-100'}`}
+                >
+                    <Header toggleTheme={toggleTheme} isDarkMode={isDarkMode} toggleMapStyle={toggleMapStyle} mapStyle={mapStyle} />
                 </div>
 
-                <div className="pointer-events-auto absolute left-3 right-3 top-[4.25rem] z-20 lg:left-1/2 lg:right-auto lg:top-[4.25rem] lg:w-[min(58rem,calc(100vw-43rem))] lg:-translate-x-1/2">
+                <div
+                    className={`pointer-events-auto absolute left-3 right-3 z-20 lg:left-1/2 lg:right-auto lg:w-[min(58rem,calc(100vw-43rem))] transition-all duration-500 ease-in-out lg:-translate-x-1/2 ${isFocusMode ? 'top-3 lg:top-4' : 'top-[4.25rem]'}`}
+                >
                     <KPIStrip filter={mapFilter} onFilterChange={setMapFilter} />
                 </div>
 
                 {/* Real, checkable disclosure that a demo sequence is injecting
                     is_simulated data through the live pipeline — never silent, on top of
                     the [SIMULATED] badges already required everywhere else. */}
-                {(isSimulating || earthquakeError) && (
+                {!isFocusMode && (isSimulating || earthquakeError) && (
                     <div className="pointer-events-none absolute left-1/2 top-[7.25rem] z-30 -translate-x-1/2 lg:top-[7rem]">
                         <div
                             className={`rounded-sm border px-3 py-1 text-[10px] font-bold tracking-widest shadow-lg backdrop-blur-md ${
@@ -85,7 +94,7 @@ function Dashboard() {
                 )}
 
                 <div
-                    className={`pointer-events-auto absolute bottom-3 left-3 top-[10.75rem] z-20 w-[calc(50%-0.5rem)] transition-transform duration-300 ease-out lg:bottom-4 lg:left-4 lg:top-[10.5rem] lg:w-[19rem] ${isBriefingMinimized ? '-translate-x-[calc(100%+1rem)]' : 'translate-x-0'}`}
+                    className={`pointer-events-auto absolute bottom-3 left-3 top-[10.75rem] z-20 w-[calc(50%-0.5rem)] transition-transform duration-300 ease-out lg:bottom-4 lg:left-4 lg:top-[10.5rem] lg:w-[19rem] ${(isBriefingMinimized || isFocusMode) ? '-translate-x-[calc(100%+1rem)]' : 'translate-x-0'}`}
                 >
                     <AISitRep />
                     <button
@@ -102,7 +111,7 @@ function Dashboard() {
                     </button>
                 </div>
 
-                {isBriefingMinimized && (
+                {!isFocusMode && isBriefingMinimized && (
                     <button
                         type="button"
                         onClick={openBriefing}
@@ -118,17 +127,9 @@ function Dashboard() {
                 )}
 
                 <div
-                    className={`pointer-events-auto absolute bottom-3 right-3 top-[10.75rem] z-20 w-[calc(50%-0.5rem)] transition-transform duration-300 ease-out lg:bottom-4 lg:right-4 lg:top-[10.5rem] lg:w-[21rem] ${isReportsMinimized ? 'translate-x-[calc(100%+1rem)]' : 'translate-x-0'}`}
+                    className={`pointer-events-auto absolute bottom-3 right-3 top-[10.75rem] z-20 w-[calc(50%-0.5rem)] transition-transform duration-300 ease-out lg:bottom-4 lg:right-4 lg:top-[10.5rem] lg:w-[21rem] ${(isReportsMinimized || isFocusMode) ? 'translate-x-[calc(100%+1rem)]' : 'translate-x-0'}`}
                 >
                     <PacketStream />
-                    <button
-                        type="button"
-                        onClick={resetMap}
-                        aria-label="Reset map view"
-                        className="absolute bottom-4 right-full z-30 mr-4 flex h-10 w-10 items-center justify-center rounded-full border border-outline-variant bg-surface-container/90 text-on-surface shadow-lg backdrop-blur-md transition-colors hover:border-primary hover:text-primary"
-                    >
-                        <span className="material-symbols-outlined text-lg">my_location</span>
-                    </button>
                     <button
                         type="button"
                         onClick={() => setIsReportsMinimized((value) => !value)}
@@ -143,7 +144,7 @@ function Dashboard() {
                     </button>
                 </div>
 
-                {isReportsMinimized && (
+                {!isFocusMode && isReportsMinimized && (
                     <button
                         type="button"
                         onClick={openReports}
@@ -157,6 +158,37 @@ function Dashboard() {
                         )}
                     </button>
                 )}
+
+                {/* GPS Button — its own always-visible floating control, not nested inside
+                    the collapsible reports panel (it used to disappear along with that
+                    panel when minimized). */}
+                <div
+                    className={`pointer-events-auto absolute bottom-4 z-50 transition-all duration-300 ease-out ${(isReportsMinimized || isFocusMode) ? 'right-4' : 'right-4 lg:right-[calc(21rem+2rem)]'}`}
+                >
+                    <button
+                        type="button"
+                        onClick={resetMap}
+                        aria-label="Reset map view"
+                        className="flex h-10 w-10 items-center justify-center rounded-full border border-outline-variant bg-surface-container/90 text-on-surface shadow-lg backdrop-blur-md transition-colors hover:border-primary hover:text-primary"
+                    >
+                        <span className="material-symbols-outlined text-lg">my_location</span>
+                    </button>
+                </div>
+
+                {/* Focus Mode Toggle */}
+                <div className="pointer-events-auto absolute bottom-4 left-1/2 z-50 -translate-x-1/2">
+                    <button
+                        type="button"
+                        onClick={() => setIsFocusMode((v) => !v)}
+                        aria-label="Toggle Focus Mode"
+                        className="flex h-10 items-center justify-center gap-2 rounded-full border border-outline-variant bg-surface-container/90 px-4 text-on-surface shadow-lg backdrop-blur-md transition-colors hover:border-primary hover:text-primary font-label-caps text-[11px] font-bold tracking-widest"
+                    >
+                        <span className="material-symbols-outlined text-[18px]">
+                            {isFocusMode ? 'fullscreen_exit' : 'fullscreen'}
+                        </span>
+                        <span className="hidden sm:inline">FOCUS</span>
+                    </button>
+                </div>
             </div>
         </div>
     );

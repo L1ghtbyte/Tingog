@@ -8,10 +8,12 @@ import type { PurokDetailOut, PurokOut } from "../api/types";
 import { useTingog } from "../context/TingogContext";
 import { DeliveryAction } from "./DeliveryAction";
 
-export type MapFilter = "ALL" | "CRITICAL" | "NEEDS" | "SILENT";
+export type MapFilter = "ALL" | "CRITICAL" | "NEEDS" | "SILENT" | "LUWAS";
 
 interface TacticalMapProps {
     filter: MapFilter;
+    isDarkMode: boolean;
+    mapStyle: "humanitarian" | "minimal";
 }
 
 const STATUS_COLOR: Record<PurokOut["status"], string> = {
@@ -104,7 +106,7 @@ function ResetViewBinding({ puroks }: { puroks: PurokOut[] }) {
     return null;
 }
 
-export function TacticalMap({ filter }: TacticalMapProps) {
+export function TacticalMap({ filter, isDarkMode, mapStyle }: TacticalMapProps) {
     const { puroks, clusters, setFocusedPurokId } = useTingog();
     const [detailById, setDetailById] = useState<Record<number, PurokDetailOut>>({});
     const [now, setNow] = useState(() => Date.now());
@@ -119,6 +121,10 @@ export function TacticalMap({ filter }: TacticalMapProps) {
         if (filter === "CRITICAL") return p.active_needs.includes("TABANG");
         if (filter === "NEEDS") return p.active_needs.some((n) => n !== "TABANG") && !p.active_needs.includes("TABANG");
         if (filter === "SILENT") return p.status === "unknown";
+        // "All clear" — a real stable status with nothing currently reported, not a
+        // client-side reconstruction of the LUWAS press itself (no hours_since_heartbeat
+        // field exists to derive it from anyway).
+        if (filter === "LUWAS") return p.active_needs.length === 0 && p.status === "stable";
         return true;
     });
 
@@ -149,16 +155,46 @@ export function TacticalMap({ filter }: TacticalMapProps) {
 
     const initialCenter: [number, number] = puroks.length > 0 ? [puroks[0].latitude, puroks[0].longitude] : [10.999, 123.9311];
 
+    // Humanitarian OSM tiles show real street/place detail; the "minimal" style uses
+    // CSS filters over CartoDB's light/dark base tiles for a cleaner tactical look —
+    // both are still real OpenStreetMap data underneath.
+    const getMapUrl = () => {
+        if (mapStyle === "humanitarian") {
+            return "https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png";
+        }
+        return isDarkMode
+            ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+            : "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
+    };
+
+    const getMapAttribution = () => {
+        if (mapStyle === "humanitarian") {
+            return '&copy; OpenStreetMap contributors, Tiles style by Humanitarian OpenStreetMap Team hosted by OpenStreetMap France';
+        }
+        return '&copy; <a href="https://carto.com/attributions">CARTO</a>';
+    };
+
+    const getMapClass = () => {
+        if (mapStyle === "minimal") {
+            return isDarkMode ? "map-dark-minimal" : "map-light";
+        }
+        return isDarkMode ? "map-dark" : "map-light";
+    };
+
     return (
         <main className="absolute inset-0 z-0 isolate overflow-hidden bg-surface-container select-none cursor-default">
-            <MapContainer center={initialCenter} zoom={14} style={{ width: "100%", height: "100%" }} zoomControl={false}>
-                {/* CartoDB's dark-styled OSM derivative — still OpenStreetMap data underneath
-                    (satisfies the "standard tile provider" requirement), just dark-themed to
-                    match the rest of this app instead of clashing with it like plain light
-                    OSM tiles did. */}
+            <MapContainer
+                center={initialCenter}
+                zoom={14}
+                style={{ width: "100%", height: "100%" }}
+                zoomControl={false}
+                attributionControl={false}
+            >
                 <TileLayer
-                    url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                    key={`${mapStyle}-${isDarkMode ? "dark" : "light"}`}
+                    url={getMapUrl()}
+                    attribution={getMapAttribution()}
+                    className={getMapClass()}
                 />
                 <FitBoundsOnce puroks={puroks} />
                 <FocusController puroks={puroks} />
