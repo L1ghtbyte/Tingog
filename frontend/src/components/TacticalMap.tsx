@@ -131,6 +131,7 @@ export function TacticalMap({ filter, isDarkMode, mapStyle }: TacticalMapProps) 
                 zoom={15} 
                 style={{ width: '100%', height: '100%' }}
                 zoomControl={false} // We will use our custom zoom controls if needed or none
+                attributionControl={false} // Hide the leaflet watermark/attribution for cleaner UI
             >
                 <TileLayer
                     key={`${mapStyle}-${isDarkMode ? 'dark' : 'light'}`}
