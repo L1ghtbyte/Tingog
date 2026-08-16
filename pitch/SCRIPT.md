@@ -12,7 +12,7 @@ Total budget: **7 minutes**, demo included, Q&A excluded (no time limit there).
 | 2 | The Problem | **DRAFTED** |
 | 3 | Product Reveal + Name Meaning | **DRAFTED** |
 | 4 | The Four-Step Framework | **DRAFTED** |
-| 5 | Live Demo — Persona-Driven Report | pending |
+| 5 | Live Demo — Persona-Driven Report | **DRAFTED** |
 | 6 | Differentiator #1, flagged — Clustering | pending |
 | 7 | Differentiator #2, flagged — Honest Silence | pending |
 | 8 | Where AI Fits — Trust Boundary | pending |
@@ -112,6 +112,41 @@ Total budget: **7 minutes**, demo included, Q&A excluded (no time limit there).
 
 ---
 
-## Stages 5–11
+## Stage 5 — Live Demo: Persona-Driven Report
 
-Not yet drafted — waiting on Stage 4 sign-off.
+**Revision history:**
+
+1. The old script's "Purok 3" reference was never actually resolved from when it was first flagged — the real device shows on the dashboard as `Live Device (DEV-089)`, not "Purok 3." Saying "I'm a resident in Purok 3" would create a live, visible mismatch the moment the dashboard updates on screen. Fixed by dropping the specific purok number entirely — zero code risk, versus renaming the real device in config the night before the pitch.
+2. The old script re-argued "why not a phone" twice within this one stage ("I don't have internet, I don't have mobile data" up front, "nobody had to call, text, or rely on a cell tower" at the close) — that's Stage 9's argument, made here before Stage 9 even exists in the pitch. Cut both, since this stage's job is to show the system working, not re-justify why it exists.
+3. The old closing line was about *channel* independence. Everything else in this script — "not eventually, immediately" (Stage 1), "in time to still matter" (Stage 2), "shouldn't depend on a person reaching it" (Stage 3) — is about *time*. Rewrote the close to land on the same idea the rest of the pitch already built, instead of a different one.
+4. Scenario changed from TUBIG (water) to TAMBAL (medicine) — a specific person needing medication reads as more urgent than a general supply shortage. Considered making Stage 6's cluster demo match (same need, continuous thread) but decided against it: different needs across the two demos actually proves the system generalizes across need types, and keeps Stage 6 using the cluster scenario that's *actually* seeded (TUBIG, Puroks 1 and 2) with zero code changes needed before the pitch.
+
+**Timing:** budget is mostly physical action (walking, pressing, waiting for the real ~1.5s poll cycle to actually update the screen), not word count — the original 60s allocation still applies.
+
+**Script:**
+
+> Let's say a typhoon just hit, and someone in this community urgently needs medicine.
+> *[walks to / points to module]*
+>
+> I simply press: TAMBAL.
+> *[press button]*
+>
+> That's it. The ESP32 inside receives the press, and sends it — not through the internet, but directly over ESP-NOW — to our gateway.
+> *[point to / show gateway ESP32]*
+>
+> This is the gateway. It picks up the signal and passes it to our laptop.
+> *[show laptop]*
+>
+> And now —
+> *[wait for dashboard update]*
+>
+> There it is. A medicine need, reported.
+>
+> No survey. No one had to reach us first.
+> The coordinator knows — immediately.
+
+---
+
+## Stages 6–11
+
+Not yet drafted — waiting on Stage 5 sign-off.
