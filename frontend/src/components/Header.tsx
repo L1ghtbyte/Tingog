@@ -28,17 +28,17 @@ export function Header({ toggleTheme, isDarkMode }: HeaderProps) {
     }).toUpperCase();
 
     return (
-        <header className="grid grid-cols-3 items-center p-3 bg-surface border-b border-outline-variant shrink-0 gap-2">
+        <header className="grid grid-cols-3 items-center gap-2 border border-outline-variant/70 bg-surface-container/35 px-3 py-1.5 backdrop-blur-sm lg:px-4">
             {/* Left: Time and Date */}
             <div className="flex flex-col items-start justify-center">
-                <span className="text-data-tabular font-data-tabular font-bold text-on-surface tracking-widest">{timeString}</span>
-                <span className="text-label-caps font-label-caps text-on-surface-variant">{dateString}</span>
+                <span className="text-[11px] leading-4 font-data-tabular font-bold text-on-surface tracking-widest">{timeString}</span>
+                <span className="hidden text-[10px] leading-3 font-label-caps text-on-surface-variant sm:block">{dateString}</span>
             </div>
 
             {/* Center: Title */}
             <div className="flex flex-col items-center justify-center text-center">
-                <h1 className="text-headline-lg font-headline-lg font-bold text-primary tracking-tighter leading-none">TINGOG</h1>
-                <span className="hidden sm:block text-label-caps font-label-caps text-on-surface-variant leading-none mt-1">DISASTER RESPONSE SYSTEM</span>
+                <h1 className="text-base font-headline-lg font-bold text-primary tracking-tight leading-none">TINGOG</h1>
+                <span className="hidden sm:block text-[10px] leading-3 font-label-caps text-on-surface-variant">DISASTER RESPONSE SYSTEM</span>
             </div>
             
             {/* Right: Actions and Theme Toggle */}
@@ -60,8 +60,8 @@ export function Header({ toggleTheme, isDarkMode }: HeaderProps) {
                 )}
                 <button 
                     onClick={toggleTheme}
-                    className="p-2 hover:bg-surface-container-highest transition-colors duration-75 rounded-sm flex items-center justify-center">
-                    <span className="material-symbols-outlined text-on-surface-variant text-[20px]">
+                    className="flex h-7 w-7 items-center justify-center rounded-sm transition-colors duration-75 hover:bg-surface-container-highest">
+                    <span className="material-symbols-outlined text-on-surface-variant text-[17px]">
                         {isDarkMode ? 'light_mode' : 'dark_mode'}
                     </span>
                 </button>

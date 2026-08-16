@@ -1,15 +1,37 @@
-import { useState, useRef, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useTingog, type Purok } from '../context/TingogContext';
-import { MapContainer, TileLayer, Marker, Popup, useMapEvents, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
-type MapFilter = 'ALL' | 'CRITICAL' | 'NEEDS' | 'SILENT';
+export type MapFilter = 'ALL' | 'CRITICAL' | 'NEEDS' | 'SILENT';
 
-export function TacticalMap() {
+interface TacticalMapProps {
+    filter: MapFilter;
+}
+
+type MapWindow = Window & { resetMapView?: () => void };
+
+function MapController() {
+    const map = useMap();
+
+    useEffect(() => {
+        const mapWindow = window as MapWindow;
+        const resetMapView = () => map.setView([11.0500, 124.0040], 15);
+
+        mapWindow.resetMapView = resetMapView;
+        return () => {
+            if (mapWindow.resetMapView === resetMapView) {
+                delete mapWindow.resetMapView;
+            }
+        };
+    }, [map]);
+
+    return null;
+}
+
+export function TacticalMap({ filter }: TacticalMapProps) {
     const { puroks, dispatchResponse } = useTingog();
-    const [filter, setFilter] = useState<MapFilter>('ALL');
-    const [selectedPurokId, setSelectedPurokId] = useState<string | null>(null);
 
     // Live time for relative timestamps
     const [now, setNow] = useState(() => Date.now());
@@ -57,8 +79,6 @@ export function TacticalMap() {
         return `${diffHrs}h ${remMins}m ago`;
     };
 
-    const filterOptions: MapFilter[] = ['ALL', 'CRITICAL', 'NEEDS', 'SILENT'];
-
     // Create a custom icon for Leaflet using our div structure
     const createCustomIcon = (p: Purok) => {
         const isCritical = p.active_needs.includes('TABANG');
@@ -78,37 +98,8 @@ export function TacticalMap() {
         });
     };
 
-    // Sub-component to handle map reset
-    function MapController() {
-        const map = useMap();
-        
-        useEffect(() => {
-            // Expose a way to reset view if needed
-            (window as any).resetMapView = () => {
-                map.setView([11.0500, 124.0040], 15);
-            };
-        }, [map]);
-
-        return null;
-    }
-
     return (
-        <main className="flex-1 min-h-[400px] lg:min-h-0 bg-surface-container border border-outline-variant rounded-sm relative flex flex-col overflow-hidden select-none cursor-default">
-            {/* Filters */}
-            <div className="absolute top-3 left-3 z-[1000] flex flex-wrap gap-3 pointer-events-none">
-                {filterOptions.map(f => (
-                    <button 
-                        key={f}
-                        onClick={(e) => { e.stopPropagation(); setFilter(f); }} 
-                        className={`pointer-events-auto bg-surface-container/90 border px-4 py-1.5 transition-colors transform skew-x-[12deg] ${filter === f ? (f === 'CRITICAL' ? 'border-red-500' : f === 'NEEDS' ? 'border-amber-500' : f === 'SILENT' ? 'border-[#64748B]' : 'border-primary') : 'border-outline-variant hover:border-on-surface-variant'}`}
-                    >
-                        <span className={`inline-block transform -skew-x-[12deg] text-label-caps font-label-caps font-bold tracking-widest ${filter === f ? (f === 'CRITICAL' ? 'text-red-500' : f === 'NEEDS' ? 'text-amber-500' : f === 'SILENT' ? 'text-[#64748B]' : 'text-primary') : 'text-on-surface-variant'}`}>
-                            {f}
-                        </span>
-                    </button>
-                ))}
-            </div>
-
+        <main className="absolute inset-0 z-0 isolate overflow-hidden bg-surface-container select-none cursor-default">
             <MapContainer 
                 center={[11.0500, 124.0040]} // Centered around Bogo, Cebu
                 zoom={15} 
@@ -130,17 +121,12 @@ export function TacticalMap() {
                             key={p.id} 
                             position={[p.coordinates.lat, p.coordinates.lng]}
                             icon={createCustomIcon(p)}
-                            eventHandlers={{
-                                click: () => setSelectedPurokId(p.id)
-                            }}
                         >
                             {/* We use Popup for the details instead of absolute divs */}
                             <Popup 
                                 closeButton={false} 
                                 className="custom-popup" 
                                 offset={[0, -10]}
-                                onOpen={() => setSelectedPurokId(p.id)}
-                                onClose={() => setSelectedPurokId(null)}
                             >
                                 <div className="w-64 bg-surface-container-highest/95 border border-outline-variant backdrop-blur-md p-3 shadow-xl">
                                     <div className="flex justify-between items-start mb-2 border-b border-outline-variant pb-2">
@@ -157,7 +143,6 @@ export function TacticalMap() {
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 dispatchResponse(p.id);
-                                                setSelectedPurokId(null);
                                             }}
                                             className="w-full bg-primary-container text-black font-bold text-label-caps font-label-caps py-2 hover:bg-primary transition-colors transform skew-x-[12deg]">
                                             <span className="inline-block transform -skew-x-[12deg] tracking-widest">{isCritical ? 'DISPATCH RESPONSE' : 'MARK RESOLVED'}</span>
@@ -169,11 +154,6 @@ export function TacticalMap() {
                     );
                 })}
             </MapContainer>
-
-            {/* Custom Zoom Controls to match previous design */}
-            <div className="absolute bottom-3 right-3 z-[1000] flex flex-col gap-2 pointer-events-none">
-                <button onClick={(e) => { e.stopPropagation(); (window as any).resetMapView?.(); }} className="pointer-events-auto mt-1 w-10 h-10 rounded-full bg-surface-container/90 border border-outline-variant hover:border-primary flex items-center justify-center text-on-surface backdrop-blur-sm transition-colors shadow-lg"><span className="material-symbols-outlined text-lg">my_location</span></button>
-            </div>
         </main>
     );
 }

@@ -47,7 +47,7 @@ export function PacketStream() {
     };
 
     return (
-        <aside className="w-full lg:w-[360px] h-[400px] lg:h-auto bg-surface-container border border-outline-variant flex flex-col rounded-sm shrink-0">
+        <aside className="h-full w-full overflow-hidden rounded-sm border border-outline-variant bg-surface-container/90 shadow-2xl backdrop-blur-md flex flex-col">
             <div className="p-3 border-b border-outline-variant flex justify-between items-center">
                 <h2 className="text-headline-md font-headline-md text-primary tracking-tight uppercase">
                     INCOMING REPORTS

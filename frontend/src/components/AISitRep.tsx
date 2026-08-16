@@ -12,7 +12,7 @@ export function AISitRep() {
     };
 
     return (
-        <aside className="w-full lg:w-[320px] max-h-[300px] lg:max-h-none bg-surface-container border border-outline-variant flex flex-col shrink-0">
+        <aside className="h-full w-full overflow-hidden rounded-sm border border-outline-variant bg-surface-container/90 shadow-2xl backdrop-blur-md flex flex-col">
             <div className="p-3 border-b border-outline-variant flex items-center justify-between">
                 <h2 className="text-headline-md font-headline-md text-primary flex items-center gap-2 tracking-tight uppercase">
                     SITUATION BRIEFING
