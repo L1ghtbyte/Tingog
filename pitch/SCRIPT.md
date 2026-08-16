@@ -13,7 +13,7 @@ Total budget: **7 minutes**, demo included, Q&A excluded (no time limit there).
 | 3 | Product Reveal + Name Meaning | **DRAFTED** |
 | 4 | The Four-Step Framework | **DRAFTED** |
 | 5 | Live Demo — Persona-Driven Report | **DRAFTED** |
-| 6 | Differentiator #1, flagged — Clustering | pending |
+| 6 | Differentiator #1, flagged — Clustering | **DRAFTED** |
 | 7 | Differentiator #2, flagged — Honest Silence | pending |
 | 8 | Where AI Fits — Trust Boundary | pending |
 | 9 | Why Not an App / What Makes Us Different (merged, moved late) | pending |
@@ -147,6 +147,35 @@ Total budget: **7 minutes**, demo included, Q&A excluded (no time limit there).
 
 ---
 
-## Stages 6–11
+## Stage 6 — Differentiator #1, flagged: Clustering
 
-Not yet drafted — waiting on Stage 5 sign-off.
+**Revision history:**
+
+1. Old script implied the cluster forms live and sequentially in front of judges ("let's say Purok X also reports... and then Purok Y"). In reality this would come from re-seeded simulated data, already sitting there when the dashboard loads — not something happening step by step. Claiming it's live when it's actually a reveal of pre-existing state is the same category of overclaim caught in Stage 5.
+2. Old script only names two puroks (5 and 7) despite its own next line saying "three separate button presses" — that "three" only worked in the old draft because it was counting the live press from the old (TUBIG) version of Stage 5. Now that Stage 5 is TAMBAL and unrelated, that count needed fixing.
+3. The explicit "this is our differentiator" flag was planned for this stage when the 11-stage structure was set up, but the original script just describes clustering matter-of-factly. Added the flag.
+4. **Fix for #1, better than originally planned:** instead of only revealing pre-seeded data, the presenter presses the real device live (TUBIG) during this stage. Since clustering groups by need type and timing regardless of whether a purok is real or simulated, and the seeded Puroks 1/2's TUBIG events are still well inside the 45-minute cluster window at this point in the pitch, the real press genuinely joins the cluster on screen, live. This makes the "watch this happen" framing true again instead of a soft overclaim, and reinforces Stage 5's mechanism a second time without re-explaining it.
+
+**Timing:** ~34–36 seconds of speech, plus a physical press-and-wait beat (same shape as Stage 5, not free — flagged honestly).
+
+**Script:**
+
+> But one report is only the beginning.
+>
+> Here's the part that actually sets Tingog apart from a simple notification system.
+>
+> Purok 1 and Purok 2 have already been reporting TUBIG. Let's make it three.
+> *[press button — TUBIG]* *[wait for dashboard update]*
+>
+> Now the coordinator isn't looking at three separate, isolated presses. Tingog recognizes multiple communities reporting the same need, close together in time — and draws the connection automatically.
+> *[point to the cluster line on the map]*
+>
+> That's not a coincidence. That might be a wider water problem.
+>
+> This is where Tingog moves beyond collecting reports. It turns local signals into situational awareness.
+
+---
+
+## Stages 7–11
+
+Not yet drafted — waiting on Stage 6 sign-off.

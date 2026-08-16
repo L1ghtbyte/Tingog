@@ -10,8 +10,8 @@ Companion to `SCRIPT.md`. **Slides and stages are not 1:1** — one slide can ho
 | 2 | The Problem | 2 | **SPECIFIED** |
 | 3 | Meet Tingog | 3 | **SPECIFIED** |
 | 4 | The Four Steps | 4 | **SPECIFIED** |
-| 5 | Live Demo (title card only) | 5 | **SPECIFIED** |
-| 6 | Bigger Picture (clustering) | 6 | pending |
+| 5 | Live Demo (title card only) | 5, 6 | **SPECIFIED** |
+| — | *(no separate slide — see Slide 5)* | — | — |
 | 7 | Silence ≠ Safe | 7 | pending |
 | 8 | Where AI Fits | 8 | pending |
 | 9 | What's Different — comparison | 9 | pending (may split into 2) |
@@ -66,11 +66,11 @@ Companion to `SCRIPT.md`. **Slides and stages are not 1:1** — one slide can ho
 
 ## Slide 5 — Live Demo (title card only)
 
-**Covers:** Stage 5.
+**Covers:** Stages 5 *and* 6 — both are continuous live-dashboard action, not separate visual moments. Updated once Stage 6 was drafted: it's a second press on the same real device, watched on the same screen, not a cut to a new slide.
 
-**On screen:** minimal — a plain "LIVE DEMO" title card, shown only while the presenter walks to the physical device. Once the button's pressed, the slide is irrelevant — attention should be on the physical module, the gateway, and the actual laptop screen, not competing with a slide for eyes. If the laptop display can be mirrored/projected instead of a slide at this point, that's stronger than any slide could be.
+**On screen:** minimal — a plain "LIVE DEMO" title card, shown only while the presenter walks to the physical device at the start of Stage 5. Once the first button's pressed, the slide is irrelevant for the rest of both stages — attention stays on the physical module, the gateway, and the actual laptop screen (mirrored/projected if possible) through both the single-report reveal (Stage 5) and the second press that joins the cluster (Stage 6).
 
-**Real requirement, not a design note:** the actual dashboard needs to be visibly showing the real device's card before the press, and needs to clearly show it update after. This depends on the dashboard actually being in a clean, readable state at that moment — worth a real rehearsal with the physical hardware before tomorrow, not just trusting the script.
+**Real requirement, not a design note:** the dashboard needs to be visibly showing the real device's card before the first press, clearly update after it, and then clearly show the cluster line appear after the second press. All of this depends on the dashboard being in a clean, readable, correctly-seeded state at that moment — worth a full rehearsal with the physical hardware end to end, not just trusting the script.
 
 ---
 
