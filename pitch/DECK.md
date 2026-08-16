@@ -9,7 +9,7 @@ Companion to `SCRIPT.md`. **Slides and stages are not 1:1** — one slide can ho
 | 1 | Title | 1 | **SPECIFIED** |
 | 2 | The Problem | 2 | **SPECIFIED** |
 | 3 | Meet Tingog | 3 | **SPECIFIED** |
-| 4 | The Four Steps | 4 | pending |
+| 4 | The Four Steps | 4 | **SPECIFIED** |
 | 5 | Live Demo (title card only) | 5 | pending |
 | 6 | Bigger Picture (clustering) | 6 | pending |
 | 7 | Silence ≠ Safe | 7 | pending |
@@ -52,6 +52,18 @@ Companion to `SCRIPT.md`. **Slides and stages are not 1:1** — one slide can ho
 
 ---
 
-## Slides 4–11
+## Slide 4 — The Four Steps
+
+**Covers:** Stage 4.
+
+**On screen:** a horizontal 4-icon pipeline — button icon → radio-wave icon → magnifying-glass/graph icon → dashboard-screen icon — connected by a simple line. Each icon and its word (Report / Transmit / Understand / Respond) fades in as it's spoken, not all at once. The Respond icon previews the real status-dot colors (green/amber/gray) the dashboard actually uses — a small preview of what's coming, not a separate invented color scheme.
+
+**Deliberately not shown here:** the USB cable detail from Transmit, and the three separate outputs now named in Understand (needs/urgency/silence). Both are correctly saved for later — the cable for the live demo's physical reveal, the three Understand outputs for their own dedicated slides (6 and 7). This slide's job is the four-word skeleton judges can hold onto for the rest of the pitch, not the full detail.
+
+**Visual echo:** same left-to-right path grammar as Slide 2's escalation-path animation — that one shows the old, slow manual path; this one shows Tingog's fast path. Not required to be built that way, but worth keeping in mind if the same designer builds both.
+
+---
+
+## Slides 5–11
 
 Not yet specified — waiting on their corresponding script stages.

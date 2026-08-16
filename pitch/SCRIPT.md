@@ -11,7 +11,7 @@ Total budget: **7 minutes**, demo included, Q&A excluded (no time limit there).
 | 1 | Opening — shared stake | **DRAFTED** |
 | 2 | The Problem | **DRAFTED** |
 | 3 | Product Reveal + Name Meaning | **DRAFTED** |
-| 4 | The Four-Step Framework | pending |
+| 4 | The Four-Step Framework | **DRAFTED** |
 | 5 | Live Demo — Persona-Driven Report | pending |
 | 6 | Differentiator #1, flagged — Clustering | pending |
 | 7 | Differentiator #2, flagged — Honest Silence | pending |
@@ -87,6 +87,31 @@ Total budget: **7 minutes**, demo included, Q&A excluded (no time limit there).
 
 ---
 
-## Stages 4–11
+## Stage 4 — The Four-Step Framework
 
-Not yet drafted — waiting on Stage 3 sign-off.
+**Revision history:**
+
+1. First pass kept the old script's four steps almost as-is, with "Transmit" claiming the signal travels wirelessly (full stop) and "Respond" claiming the coordinator "acts on verified information."
+2. Caught: "Transmit" only describes the purok→gateway hop. The gateway→laptop hop is a USB cable, disclosed two stages later in the live demo. Saying "wirelessly" here with no qualifier sets up a contradiction the moment the cable is shown. Fixed to describe the relay without over-claiming full wireless.
+3. Caught: "verified information" reuses a word that gets a specific, mechanically-true meaning later (the Figure Checker actually checking AI claims against real data, Stage 8). Used loosely here, before that machinery exists in the pitch, it dilutes the word for when it needs full weight.
+4. Caught (bigger): my fix for #3 replaced "verified" with "the coordinator... decides where to send help" — which is a real overclaim. This project has repeatedly, deliberately drawn the line that Tingog does not touch relief logistics or dispatch decisions (see `JUDGE_QA.md`). A framework overview that implies "Tingog → help gets sent" sets up a direct contradiction with that already-tested Q&A answer. Reverted to the original script's own safer instinct: "can act on it," which doesn't claim what the action is.
+5. Caught (on "Understand," after a first fix that wasn't enough): "scores how urgent each report is" was wrong twice over — the system doesn't score individual reports, it continuously scores a *purok's overall situation* (fixed that part first) — but even "how urgent" alone still under-describes what "Understand" actually produces. The real system determines three separate things: what's needed (`active_needs`), how urgent it is (`severity`), and whether the purok's gone silent at all (`status`) — that last one is the whole silence-honesty differentiator, and the shorter version dropped it entirely. Rewritten to name all three, so this line properly sets up *both* later differentiator stages (clustering in Stage 6, silence-handling in Stage 7) instead of only one.
+
+**Timing:** ~29–31 seconds (back near the original 30s allocation after Understand grew).
+
+**Script:**
+
+> Tingog works in four simple steps:
+>
+> Report — a resident presses a physical button.
+> Transmit — the signal reaches a base device wirelessly, which relays it into our system.
+> Understand — our system works out what's needed, how urgent it is, whether a purok's gone quiet, and whether the same need is showing up elsewhere.
+> Respond — the coordinator sees the real situation on the dashboard and can act on it.
+>
+> Let me show you how that works.
+
+---
+
+## Stages 5–11
+
+Not yet drafted — waiting on Stage 4 sign-off.
