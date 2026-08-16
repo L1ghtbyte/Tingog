@@ -1,195 +1,232 @@
-import { useState, useRef, useEffect } from 'react';
-import { useTingog, type Purok } from '../context/TingogContext';
+import { useEffect, useMemo, useRef, useState } from "react";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+import { MapContainer, Marker, Polyline, Popup, TileLayer, Tooltip, useMap } from "react-leaflet";
 
-type MapFilter = 'ALL' | 'CRITICAL' | 'NEEDS' | 'SILENT';
+import { getPurokDetail } from "../api/client";
+import type { PurokDetailOut, PurokOut } from "../api/types";
+import { useTingog } from "../context/TingogContext";
+import { DeliveryAction } from "./DeliveryAction";
 
-export function TacticalMap() {
-    const { puroks, dispatchResponse } = useTingog();
-    const [filter, setFilter] = useState<MapFilter>('ALL');
-    const [selectedPurokId, setSelectedPurokId] = useState<string | null>(null);
+export type MapFilter = "ALL" | "CRITICAL" | "NEEDS" | "SILENT";
 
-    // Pan & Zoom State
-    const [zoom, setZoom] = useState(1);
-    const [pan, setPan] = useState({ x: 0, y: 0 });
-    const [isDragging, setIsDragging] = useState(false);
-    const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-    const mapRef = useRef<HTMLDivElement>(null);
-    
-    // Live time for relative timestamps
+interface TacticalMapProps {
+    filter: MapFilter;
+}
+
+const STATUS_COLOR: Record<PurokOut["status"], string> = {
+    unknown: "bg-[#64748B] border-[#334155]",
+    attention: "bg-amber-500 border-white",
+    stable: "bg-green-500 border-white",
+};
+
+const STATUS_TEXT_COLOR: Record<PurokOut["status"], string> = {
+    unknown: "text-[#64748B]",
+    attention: "text-amber-400",
+    stable: "text-green-400",
+};
+
+function createMarkerIcon(purok: PurokOut): L.DivIcon {
+    const isCritical = purok.active_needs.includes("TABANG");
+    // Real devices render as a diamond, simulated ones as a circle — a second,
+    // shape-based signal on top of the [SIMULATED] text badge in the popup, so it's
+    // legible even before a marker is clicked (same hard requirement as the card badge).
+    const shapeClass = purok.is_simulated ? "rounded-full" : "rotate-45";
+    const html = `
+        <div class="relative w-4 h-4 ${shapeClass} border-2 ${STATUS_COLOR[purok.status]}">
+            ${isCritical ? '<div class="absolute inset-0 rounded-full border-2 border-red-500 animate-ping opacity-75"></div>' : ""}
+        </div>
+    `;
+    return L.divIcon({ html, className: "tingog-marker-icon", iconSize: [16, 16], iconAnchor: [8, 8] });
+}
+
+function formatTime(iso: string | null, now: number): string {
+    if (!iso) return "no contact yet";
+    const diffMs = now - new Date(iso).getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    if (diffMins < 1) return "just now";
+    if (diffMins < 60) return `${diffMins}m ago`;
+    const diffHrs = Math.floor(diffMins / 60);
+    return `${diffHrs}h ${diffMins % 60}m ago`;
+}
+
+// Watches context's focusedPurokId (set by AISitRep's escalation list / claim chips)
+// and pans/zooms the map to it — only usable inside <MapContainer>, hence a sub-component.
+function FocusController({ puroks }: { puroks: PurokOut[] }) {
+    const map = useMap();
+    const { focusedPurokId } = useTingog();
+
+    useEffect(() => {
+        if (focusedPurokId === null) return;
+        const purok = puroks.find((p) => p.id === focusedPurokId);
+        if (purok) map.flyTo([purok.latitude, purok.longitude], 16, { duration: 0.75 });
+    }, [focusedPurokId, puroks, map]);
+
+    return null;
+}
+
+function fitToPuroks(map: L.Map, puroks: PurokOut[]) {
+    if (puroks.length === 0) return;
+    const bounds = L.latLngBounds(puroks.map((p) => [p.latitude, p.longitude] as [number, number]));
+    map.fitBounds(bounds, { padding: [50, 50] });
+}
+
+function FitBoundsOnce({ puroks }: { puroks: PurokOut[] }) {
+    const map = useMap();
+    const hasFit = useRef(false);
+
+    useEffect(() => {
+        if (hasFit.current || puroks.length === 0) return;
+        fitToPuroks(map, puroks);
+        hasFit.current = true;
+    }, [puroks, map]);
+
+    return null;
+}
+
+// App.tsx's floating panel has its own "reset view" button (it can't call useMap()
+// directly since it's outside the map tree) — expose the real fit-to-puroks behavior as
+// a window global it can call, same pattern as the reference dashboard redesign.
+type MapWindow = Window & { resetMapView?: () => void };
+
+function ResetViewBinding({ puroks }: { puroks: PurokOut[] }) {
+    const map = useMap();
+
+    useEffect(() => {
+        const mapWindow = window as MapWindow;
+        const resetMapView = () => fitToPuroks(map, puroks);
+        mapWindow.resetMapView = resetMapView;
+        return () => {
+            if (mapWindow.resetMapView === resetMapView) delete mapWindow.resetMapView;
+        };
+    }, [map, puroks]);
+
+    return null;
+}
+
+export function TacticalMap({ filter }: TacticalMapProps) {
+    const { puroks, clusters, setFocusedPurokId } = useTingog();
+    const [detailById, setDetailById] = useState<Record<number, PurokDetailOut>>({});
     const [now, setNow] = useState(() => Date.now());
+
     useEffect(() => {
         const timer = setInterval(() => setNow(Date.now()), 60000);
         return () => clearInterval(timer);
     }, []);
 
-    const filteredPuroks = puroks.filter(p => {
-        if (filter === 'ALL') return true;
-        if (filter === 'CRITICAL') return p.active_needs.includes('TABANG');
-        if (filter === 'NEEDS') return p.active_needs.some(n => ['TUBIG', 'TAMBAL', 'PAGKAON'].includes(n)) && !p.active_needs.includes('TABANG');
-        if (filter === 'SILENT') return p.status === 'unknown' || p.hours_since_heartbeat > 6;
+    const filteredPuroks = puroks.filter((p) => {
+        if (filter === "ALL") return true;
+        if (filter === "CRITICAL") return p.active_needs.includes("TABANG");
+        if (filter === "NEEDS") return p.active_needs.some((n) => n !== "TABANG") && !p.active_needs.includes("TABANG");
+        if (filter === "SILENT") return p.status === "unknown";
         return true;
     });
 
-    const getPinStyle = (p: Purok) => {
-        if (p.active_needs.includes('TABANG')) return 'bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.8)] border-white';
-        if (p.active_needs.length > 0) return 'bg-amber-500 shadow-[0_0_15px_rgba(245,158,11,0.5)] border-white';
-        if (p.status === 'unknown' || p.hours_since_heartbeat > 6) return 'bg-[#64748B] shadow-[0_0_10px_rgba(100,116,139,0.5)] border-[#334155]';
-        return 'bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)] border-white';
-    };
-
-    const getPinTextColor = (p: Purok) => {
-        if (p.active_needs.includes('TABANG')) return 'text-red-400';
-        if (p.active_needs.length > 0) return 'text-amber-400';
-        if (p.status === 'unknown' || p.hours_since_heartbeat > 6) return 'text-[#64748B]';
-        return 'text-green-400';
-    };
-
-    const getNeedLabel = (p: Purok) => {
-        if (p.active_needs.includes('TABANG')) return <><span className="text-red-500 font-bold">TABANG (CRITICAL)</span></>;
-        if (p.active_needs.length > 0) return <span className="text-amber-500 font-bold">{p.active_needs.join(', ')}</span>;
-        if (p.status === 'unknown' || p.hours_since_heartbeat > 6) return <span className="text-[#64748B] font-bold">SILENT {p.hours_since_heartbeat}h</span>;
-        return <span className="text-green-500 font-bold">LUWAS</span>;
-    };
-
-    const formatTime = (date: Date) => {
-        const diffMs = now - date.getTime();
-        const diffMins = Math.floor(diffMs / 60000);
-        if (diffMins < 1) return 'Just now';
-        if (diffMins < 60) return `${diffMins}m ago`;
-        const diffHrs = Math.floor(diffMins / 60);
-        const remMins = diffMins % 60;
-        return `${diffHrs}h ${remMins}m ago`;
-    };
-
-    const handlePinClick = (id: string, e: React.MouseEvent) => {
-        e.stopPropagation();
-        setSelectedPurokId(id === selectedPurokId ? null : id);
-    };
-
-    // Pan & Zoom Handlers
-    const handleMouseDown = (e: React.MouseEvent) => {
-        if (e.button !== 0) return; // Only left click
-        setIsDragging(true);
-        setDragStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
-    };
-
-    const handleMouseMove = (e: React.MouseEvent) => {
-        if (isDragging) {
-            setPan({ x: e.clientX - dragStart.x, y: e.clientY - dragStart.y });
+    const handlePopupOpen = async (purok: PurokOut) => {
+        if (detailById[purok.id]) return;
+        try {
+            const detail = await getPurokDetail(purok.id);
+            setDetailById((prev) => ({ ...prev, [purok.id]: detail }));
+        } catch {
+            // Popup still renders with list-level data if the detail fetch fails.
         }
     };
 
-    const handleMouseUp = () => setIsDragging(false);
+    // Resolve each cluster's purok NAMES (the only thing get_active_clusters returns)
+    // against the currently-fetched purok list to get real coordinates for the overlay.
+    const clusterLines = useMemo(() => {
+        const byName = new Map(puroks.map((p) => [p.name, p]));
+        return clusters
+            .map((cluster) => {
+                const points = cluster.puroks
+                    .map((name) => byName.get(name))
+                    .filter((p): p is PurokOut => Boolean(p))
+                    .map((p) => [p.latitude, p.longitude] as [number, number]);
+                return { cluster, points };
+            })
+            .filter((c) => c.points.length >= 2);
+    }, [clusters, puroks]);
 
-    const handleWheel = (e: WheelEvent) => {
-        e.preventDefault();
-        const zoomSensitivity = 0.001;
-        setZoom(z => Math.max(0.5, Math.min(3, z - e.deltaY * zoomSensitivity)));
-    };
-
-    useEffect(() => {
-        const mapEl = mapRef.current;
-        if (mapEl) {
-            mapEl.addEventListener('wheel', handleWheel, { passive: false });
-            return () => mapEl.removeEventListener('wheel', handleWheel);
-        }
-    }, []);
-
-    const resetView = () => {
-        setZoom(1);
-        setPan({ x: 0, y: 0 });
-    };
-
-    const filterOptions: MapFilter[] = ['ALL', 'CRITICAL', 'NEEDS', 'SILENT'];
+    const initialCenter: [number, number] = puroks.length > 0 ? [puroks[0].latitude, puroks[0].longitude] : [10.999, 123.9311];
 
     return (
-        <main 
-            ref={mapRef}
-            className="flex-1 min-h-[400px] lg:min-h-0 bg-surface-container border border-outline-variant rounded-sm relative flex flex-col overflow-hidden select-none cursor-default" 
-            onClick={() => setSelectedPurokId(null)}
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseUp}
-        >
-            {/* Filters */}
-            <div className="absolute top-3 left-3 z-30 flex flex-wrap gap-3 pointer-events-none">
-                {filterOptions.map(f => (
-                    <button 
-                        key={f}
-                        onClick={(e) => { e.stopPropagation(); setFilter(f); }} 
-                        className={`pointer-events-auto bg-surface-container/90 border px-4 py-1.5 transition-colors transform skew-x-[12deg] ${filter === f ? (f === 'CRITICAL' ? 'border-red-500' : f === 'NEEDS' ? 'border-amber-500' : f === 'SILENT' ? 'border-[#64748B]' : 'border-primary') : 'border-outline-variant hover:border-on-surface-variant'}`}
-                    >
-                        <span className={`inline-block transform -skew-x-[12deg] text-label-caps font-label-caps font-bold tracking-widest ${filter === f ? (f === 'CRITICAL' ? 'text-red-500' : f === 'NEEDS' ? 'text-amber-500' : f === 'SILENT' ? 'text-[#64748B]' : 'text-primary') : 'text-on-surface-variant'}`}>
-                            {f}
-                        </span>
-                    </button>
+        <main className="absolute inset-0 z-0 isolate overflow-hidden bg-surface-container select-none cursor-default">
+            <MapContainer center={initialCenter} zoom={14} style={{ width: "100%", height: "100%" }} zoomControl={false}>
+                {/* CartoDB's dark-styled OSM derivative — still OpenStreetMap data underneath
+                    (satisfies the "standard tile provider" requirement), just dark-themed to
+                    match the rest of this app instead of clashing with it like plain light
+                    OSM tiles did. */}
+                <TileLayer
+                    url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                />
+                <FitBoundsOnce puroks={puroks} />
+                <FocusController puroks={puroks} />
+                <ResetViewBinding puroks={puroks} />
+
+                {clusterLines.map(({ cluster, points }) => (
+                    <Polyline key={cluster.cluster_id} positions={points} pathOptions={{ color: "#F59E0B", weight: 2, dashArray: "6 6", opacity: 0.7 }}>
+                        <Tooltip permanent direction="center" className="!bg-amber-500/90 !text-black !border-0 !text-[10px] !font-bold">
+                            {cluster.need_type} cluster — {cluster.puroks.length} puroks, {cluster.confidence}% confidence
+                        </Tooltip>
+                    </Polyline>
                 ))}
-            </div>
 
-            {/* Map Canvas (Pans & Zooms) */}
-            <div className="absolute inset-0 transition-transform duration-75 origin-center" style={{ transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})` }}>
-                
-                {/* Background Grid & Restored Map Image */}
-                <div className="absolute inset-[-50%] tactical-grid"></div>
-                <div className="absolute inset-[-50%] bg-cover bg-center opacity-25 grayscale dark:invert-0 invert pointer-events-none" style={{ backgroundImage: "url('https://lh3.googleusercontent.com/aida-public/AB6AXuAkCQbXPMsVBQJxDssNyKnJukItvzocrJBwsMoV39ktms3K-nvSMAB3uoJXpc_oPJLYAiZfvH3XXbXGGZZiSsj0lOhJy3JkLsZhpXw-rDyp6Kuw-bAUDuoEOMm_Ms5VD8pi5Ifr0DmTyj4yZXHierqvtZvKLI-hSByXIkrtII4BHiJeeg3_-fczPDp8uPKGokfekb0thtpsN54wufHcGPRRIhks1s_C4oU6bQJToC_f5EgUAPMofvM6')" }}></div>
-                
-                {/* Connection Lines (Simulated Star Topology to center Gateway) */}
-                <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-20">
-                    {filteredPuroks.map(p => (
-                        <line key={`line-${p.id}`} x1="50%" y1="50%" x2={`${p.coordinates.x}%`} y2={`${p.coordinates.y}%`} stroke="var(--color-primary)" strokeWidth="1" strokeDasharray="4 4" />
-                    ))}
-                    <circle cx="50%" cy="50%" r="4" fill="var(--color-primary)" />
-                </svg>
-
-                {/* Nodes */}
-                {filteredPuroks.map(p => {
-                    const isSelected = p.id === selectedPurokId;
-                    const isCritical = p.active_needs.includes('TABANG');
-                    
+                {filteredPuroks.map((p) => {
+                    const detail = detailById[p.id];
                     return (
-                        <div key={p.id} className="absolute group" style={{ top: `${p.coordinates.y}%`, left: `${p.coordinates.x}%`, transform: 'translate(-50%, -50%)' }}>
-                            <div 
-                                onClick={(e) => handlePinClick(p.id, e)}
-                                className={`relative w-4 h-4 rotate-45 border cursor-pointer z-20 hover:scale-125 transition-transform ${getPinStyle(p)}`}
-                            >
-                                {isCritical && <div className="absolute inset-0 rounded-full border border-red-500 animate-ping opacity-75"></div>}
-                            </div>
-
-                            {isSelected && (
-                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 w-64 bg-surface-container-highest/95 border border-outline-variant backdrop-blur-md p-3 opacity-100 z-30 shadow-xl" style={{ transform: `scale(${1/zoom})`, transformOrigin: 'bottom center' }} onClick={e => e.stopPropagation()}>
-                                    <div className="flex justify-between items-start mb-2 border-b border-outline-variant pb-2">
-                                        <span className="text-label-caps font-label-caps text-on-surface font-bold tracking-widest">{p.device_id}: {p.name}</span>
-                                        <span className={`text-label-caps font-label-caps ${getPinTextColor(p)} ${isCritical ? 'animate-pulse' : ''}`}>{formatTime(p.last_event_at)}</span>
+                        <Marker
+                            key={p.id}
+                            position={[p.latitude, p.longitude]}
+                            icon={createMarkerIcon(p)}
+                            eventHandlers={{
+                                click: () => setFocusedPurokId(p.id),
+                                popupopen: () => handlePopupOpen(p),
+                            }}
+                        >
+                            <Popup closeButton={false} className="tingog-popup" offset={[0, -10]}>
+                                <div className="w-64 bg-surface-container-highest/95 border border-outline-variant backdrop-blur-md p-3 shadow-xl text-on-surface">
+                                    <div className="flex justify-between items-start mb-2 border-b border-outline-variant pb-2 gap-2">
+                                        <span className="text-label-caps font-label-caps font-bold tracking-widest">
+                                            {p.device_id}: {p.name}
+                                            {p.is_simulated && <span className="ml-1 text-[9px] text-on-surface-variant">[SIMULATED]</span>}
+                                        </span>
+                                        <span className={`text-label-caps font-label-caps shrink-0 ${STATUS_TEXT_COLOR[p.status]}`}>
+                                            {formatTime(p.last_event_at, now)}
+                                        </span>
                                     </div>
-                                    <div className="text-data-tabular font-data-tabular text-on-surface space-y-1 mb-3">
-                                        <div><span className="text-on-surface-variant">STATUS:</span> {getNeedLabel(p)}</div>
-                                        <div><span className="text-on-surface-variant">VULN HH:</span> {p.baseline_vulnerable_count} / {p.baseline_household_count}</div>
-                                        <div><span className="text-on-surface-variant">BATTERY:</span> {p.battery_pct}%</div>
+                                    <div className="text-data-tabular font-data-tabular space-y-1 mb-2">
+                                        <div>
+                                            <span className="text-on-surface-variant">STATUS:</span>{" "}
+                                            <span className={`font-bold ${STATUS_TEXT_COLOR[p.status]}`}>{p.status.toUpperCase()}</span> / {p.severity}
+                                        </div>
+                                        <div>
+                                            <span className="text-on-surface-variant">NEEDS:</span>{" "}
+                                            {p.active_needs.length > 0 ? p.active_needs.join(", ") : "none reported"}
+                                        </div>
+                                        <div>
+                                            <span className="text-on-surface-variant">LEADER:</span> {p.purok_leader ?? "unset"}
+                                        </div>
+                                        {p.severity_reasons.length > 0 && (
+                                            <div>
+                                                <span className="text-on-surface-variant">WHY:</span> {p.severity_reasons.join("; ")}
+                                            </div>
+                                        )}
+                                        {detail && detail.deliveries.length > 0 && (
+                                            <div>
+                                                <span className="text-on-surface-variant">LAST DELIVERY:</span>{" "}
+                                                {detail.deliveries[detail.deliveries.length - 1].items.join(", ")} (
+                                                {formatTime(detail.deliveries[detail.deliveries.length - 1].delivered_at, now)})
+                                            </div>
+                                        )}
                                     </div>
-                                    {p.active_needs.length > 0 && (
-                                        <button 
-                                            onClick={() => {
-                                                dispatchResponse(p.id);
-                                                setSelectedPurokId(null);
-                                            }}
-                                            className="w-full bg-primary-container text-black font-bold text-label-caps font-label-caps py-2 hover:bg-primary transition-colors transform skew-x-[12deg]">
-                                            <span className="inline-block transform -skew-x-[12deg] tracking-widest">{isCritical ? 'DISPATCH RESPONSE' : 'MARK RESOLVED'}</span>
-                                        </button>
-                                    )}
+                                    <DeliveryAction purok={p} />
                                 </div>
-                            )}
-                        </div>
+                            </Popup>
+                        </Marker>
                     );
                 })}
-            </div>
-
-            {/* Zoom Controls */}
-            <div className="absolute bottom-3 right-3 z-30 flex flex-col gap-2 pointer-events-none">
-                <button onClick={(e) => { e.stopPropagation(); setZoom(z => Math.min(3, z + 0.5)); }} className="pointer-events-auto w-10 h-10 rounded-full bg-surface-container/90 border border-outline-variant hover:border-primary flex items-center justify-center text-on-surface backdrop-blur-sm transition-colors shadow-lg"><span className="font-bold text-lg leading-none">+</span></button>
-                <button onClick={(e) => { e.stopPropagation(); setZoom(z => Math.max(0.5, z - 0.5)); }} className="pointer-events-auto w-10 h-10 rounded-full bg-surface-container/90 border border-outline-variant hover:border-primary flex items-center justify-center text-on-surface backdrop-blur-sm transition-colors shadow-lg"><span className="font-bold text-lg leading-none">-</span></button>
-                <button onClick={(e) => { e.stopPropagation(); resetView(); }} className="pointer-events-auto mt-1 w-10 h-10 rounded-full bg-surface-container/90 border border-outline-variant hover:border-primary flex items-center justify-center text-on-surface backdrop-blur-sm transition-colors shadow-lg"><span className="material-symbols-outlined text-lg">my_location</span></button>
-            </div>
+            </MapContainer>
         </main>
     );
 }

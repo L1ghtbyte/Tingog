@@ -1,160 +1,141 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 
-// --- DATA TYPES ---
-export type NeedType = 'TABANG' | 'TUBIG' | 'TAMBAL' | 'PAGKAON' | 'LUWAS';
-export type Severity = 'unknown' | 'attention' | 'stable';
+import {
+    getClusters,
+    getEscalations,
+    getPuroks,
+    getRecentEvents,
+    logDelivery as apiLogDelivery,
+    simulateEarthquake as apiSimulateEarthquake,
+} from "../api/client";
+import type { ClusterOut, EscalationOut, NeedButton, PurokOut, RecentEventOut } from "../api/types";
 
-export interface Purok {
-    id: string;
-    device_id: string;
-    name: string;
-    barangay: string;
-    baseline_household_count: number;
-    baseline_vulnerable_count: number;
-    active_needs: NeedType[];
-    status: Severity;
-    battery_pct: number;
-    last_event_at: Date;
-    hours_since_heartbeat: number;
-    coordinates: { x: number, y: number }; // Percentage 0-100 for map placement
-}
+// A UI refresh cadence — deliberately distinct from the backend's own ~1.5s
+// device-ingestion poll (ARCHITECTURE.md §6 draws the same distinction). This is just
+// "how often does the dashboard ask the backend for the current picture," unrelated to
+// how the backend itself hears about a button press.
+const POLL_INTERVAL_MS = 5000;
 
-export interface Packet {
-    id: string;
-    device_id: string;
-    purok_name: string;
-    need_type: NeedType;
-    is_double_press: boolean;
-    timestamp: Date;
-    acked: boolean;
-}
-
-export interface Anomaly {
-    id: string;
-    type: 'CLUSTER' | 'SILENCE' | 'PATTERN' | 'ESCALATION';
-    title: string;
-    description: string;
-    related_purok_ids: string[];
-    severity: 'red' | 'amber';
-}
+// Matches backend/app/routers/admin.py's EARTHQUAKE_STEPS * EARTHQUAKE_STEP_SECONDS —
+// used only to size the local "DEMO SEQUENCE RUNNING" banner timer, not to control the
+// actual sequence (that runs entirely server-side, through the real pipeline).
+const EARTHQUAKE_DURATION_MS = 18000;
 
 interface TingogContextType {
-    puroks: Purok[];
-    packets: Packet[];
-    anomalies: Anomaly[];
-    ackPacket: (id: string) => void;
-    dispatchResponse: (purokId: string) => void;
+    puroks: PurokOut[];
+    escalations: EscalationOut[];
+    clusters: ClusterOut[];
+    recentEvents: RecentEventOut[];
+    lastUpdated: Date | null;
+    isStale: boolean;
+    logDelivery: (purokId: number, items: NeedButton[], deliveredBy?: string) => Promise<void>;
+    isSimulating: boolean;
+    triggerEarthquake: () => Promise<void>;
+    earthquakeError: string | null;
+    focusedPurokId: number | null;
+    setFocusedPurokId: (id: number | null) => void;
 }
 
 const TingogContext = createContext<TingogContextType | undefined>(undefined);
 
-// ==========================================
-// ⚠️ MOCK DATA ENGINE BELOW ⚠️
-// ==========================================
-// This section simulates the Data Layer and Inference Layer described in the PDF.
-// In a real application, this state would be driven by websockets or polling a real backend.
-
-const MOCK_PUROKS: Purok[] = [
-    { id: 'p-1', device_id: 'DEV-001', name: 'Purok 1', barangay: 'Bogo', baseline_household_count: 45, baseline_vulnerable_count: 5, active_needs: [], status: 'stable', battery_pct: 92, last_event_at: new Date(Date.now() - 1000 * 60 * 30), hours_since_heartbeat: 0.5, coordinates: { x: 30, y: 40 } },
-    { id: 'p-2', device_id: 'DEV-002', name: 'Purok 2', barangay: 'Bogo', baseline_household_count: 62, baseline_vulnerable_count: 12, active_needs: [], status: 'stable', battery_pct: 85, last_event_at: new Date(Date.now() - 1000 * 60 * 120), hours_since_heartbeat: 2, coordinates: { x: 35, y: 35 } },
-    { id: 'p-3', device_id: 'DEV-003', name: 'Purok 3', barangay: 'Bogo', baseline_household_count: 38, baseline_vulnerable_count: 3, active_needs: ['TUBIG'], status: 'attention', battery_pct: 78, last_event_at: new Date(Date.now() - 1000 * 60 * 45), hours_since_heartbeat: 1, coordinates: { x: 60, y: 40 } },
-    { id: 'p-5', device_id: 'DEV-005', name: 'Purok 5', barangay: 'Bogo', baseline_household_count: 55, baseline_vulnerable_count: 8, active_needs: ['TUBIG'], status: 'attention', battery_pct: 88, last_event_at: new Date(Date.now() - 1000 * 60 * 40), hours_since_heartbeat: 1, coordinates: { x: 63, y: 42 } },
-    { id: 'p-7', device_id: 'DEV-007', name: 'Purok 7', barangay: 'Bogo', baseline_household_count: 41, baseline_vulnerable_count: 4, active_needs: ['TUBIG'], status: 'attention', battery_pct: 91, last_event_at: new Date(Date.now() - 1000 * 60 * 35), hours_since_heartbeat: 0.5, coordinates: { x: 58, y: 45 } },
-    { id: 'p-9', device_id: 'DEV-009', name: 'Purok 9', barangay: 'Bogo', baseline_household_count: 50, baseline_vulnerable_count: 10, active_needs: [], status: 'unknown', battery_pct: 12, last_event_at: new Date(Date.now() - 1000 * 60 * 60 * 9), hours_since_heartbeat: 9, coordinates: { x: 80, y: 20 } },
-    { id: 'p-89', device_id: 'DEV-089', name: 'Purok Santos', barangay: 'Bogo', baseline_household_count: 22, baseline_vulnerable_count: 3, active_needs: ['TABANG'], status: 'attention', battery_pct: 88, last_event_at: new Date(Date.now() - 1000 * 60 * 2), hours_since_heartbeat: 0, coordinates: { x: 35, y: 55 } },
-    { id: 'p-214', device_id: 'DEV-214', name: 'Purok Mendoza', barangay: 'Bogo', baseline_household_count: 31, baseline_vulnerable_count: 2, active_needs: ['TUBIG'], status: 'attention', battery_pct: 75, last_event_at: new Date(Date.now() - 1000 * 60 * 12), hours_since_heartbeat: 0, coordinates: { x: 45, y: 65 } },
-];
-
-const MOCK_PACKETS: Packet[] = [
-    { id: 'pkt-1', device_id: 'DEV-089', purok_name: 'Purok Santos', need_type: 'TABANG', is_double_press: true, timestamp: new Date(Date.now() - 1000 * 60 * 2), acked: false },
-    { id: 'pkt-2', device_id: 'DEV-214', purok_name: 'Purok Mendoza', need_type: 'TUBIG', is_double_press: false, timestamp: new Date(Date.now() - 1000 * 60 * 12), acked: false },
-    { id: 'pkt-3', device_id: 'DEV-001', purok_name: 'Purok 1', need_type: 'LUWAS', is_double_press: false, timestamp: new Date(Date.now() - 1000 * 60 * 30), acked: true },
-    { id: 'pkt-4', device_id: 'DEV-007', purok_name: 'Purok 7', need_type: 'TUBIG', is_double_press: false, timestamp: new Date(Date.now() - 1000 * 60 * 35), acked: true },
-    { id: 'pkt-5', device_id: 'DEV-005', purok_name: 'Purok 5', need_type: 'TUBIG', is_double_press: false, timestamp: new Date(Date.now() - 1000 * 60 * 40), acked: true },
-    { id: 'pkt-6', device_id: 'DEV-003', purok_name: 'Purok 3', need_type: 'TUBIG', is_double_press: false, timestamp: new Date(Date.now() - 1000 * 60 * 45), acked: true },
-];
-
-const MOCK_ANOMALIES: Anomaly[] = [
-    {
-        id: 'anm-1',
-        type: 'CLUSTER',
-        title: 'CLUSTER ANOMALY DETECTED',
-        description: '3 neighboring puroks pressed TUBIG within 45 minutes. Probable water line failure.',
-        related_purok_ids: ['p-3', 'p-5', 'p-7'],
-        severity: 'red'
-    },
-    {
-        id: 'anm-2',
-        type: 'SILENCE',
-        title: 'SILENCE ANOMALY',
-        description: 'Purok 9 has not sent a heartbeat in 9 hours; the last press before that was a held TABANG.',
-        related_purok_ids: ['p-9'],
-        severity: 'amber'
-    },
-    {
-        id: 'anm-3',
-        type: 'ESCALATION',
-        title: 'SEVERITY ESCALATION',
-        description: 'Purok Mendoza (baseline vulnerability > 0) has reported TUBIG for over 24 hours with no dispatch.',
-        related_purok_ids: ['p-214'],
-        severity: 'red'
-    }
-];
-
 export function TingogProvider({ children }: { children: ReactNode }) {
-    const [puroks, setPuroks] = useState<Purok[]>(MOCK_PUROKS);
-    const [packets, setPackets] = useState<Packet[]>(MOCK_PACKETS);
-    const [anomalies] = useState<Anomaly[]>(MOCK_ANOMALIES);
+    const [puroks, setPuroks] = useState<PurokOut[]>([]);
+    const [escalations, setEscalations] = useState<EscalationOut[]>([]);
+    const [clusters, setClusters] = useState<ClusterOut[]>([]);
+    const [recentEvents, setRecentEvents] = useState<RecentEventOut[]>([]);
+    const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+    const [isStale, setIsStale] = useState(false);
+    const [isSimulating, setIsSimulating] = useState(false);
+    const [earthquakeError, setEarthquakeError] = useState<string | null>(null);
+    const [focusedPurokId, setFocusedPurokId] = useState<number | null>(null);
+    const earthquakeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    const ackPacket = (id: string) => {
-        setPackets(prev => prev.map(p => p.id === id ? { ...p, acked: true } : p));
-    };
+    const poll = useCallback(async () => {
+        try {
+            const [nextPuroks, nextEscalations, nextClusters, nextRecentEvents] = await Promise.all([
+                getPuroks(),
+                getEscalations(),
+                getClusters(),
+                getRecentEvents(),
+            ]);
+            setPuroks(nextPuroks);
+            setEscalations(nextEscalations);
+            setClusters(nextClusters);
+            setRecentEvents(nextRecentEvents);
+            setLastUpdated(new Date());
+            setIsStale(false);
+        } catch {
+            // Backend briefly unreachable — keep showing the last-known data instead of
+            // blanking the screen; just flag it so the UI can say so.
+            setIsStale(true);
+        }
+    }, []);
 
-    const dispatchResponse = (purokId: string) => {
-        // Clear active needs and set to stable
-        setPuroks(prev => prev.map(p => {
-            if (p.id === purokId) {
-                return { ...p, active_needs: [], status: 'stable' };
-            }
-            return p;
-        }));
-    };
-
-    // Simulate incoming data over time
     useEffect(() => {
-        const interval = setInterval(() => {
-            // Randomly generate a LUWAS heartbeat for a random stable purok occasionally
-            if (Math.random() > 0.8) {
-                const stablePuroks = puroks.filter(p => p.status === 'stable');
-                if (stablePuroks.length > 0) {
-                    const randomPurok = stablePuroks[Math.floor(Math.random() * stablePuroks.length)];
-                    const newPacket: Packet = {
-                        id: `pkt-${Date.now()}`,
-                        device_id: randomPurok.device_id,
-                        purok_name: randomPurok.name,
-                        need_type: 'LUWAS',
-                        is_double_press: false,
-                        timestamp: new Date(),
-                        acked: false
-                    };
-
-                    setPackets(prev => [newPacket, ...prev]);
-                    setPuroks(prev => prev.map(p => {
-                        if (p.id === randomPurok.id) {
-                            return { ...p, last_event_at: new Date(), hours_since_heartbeat: 0 };
-                        }
-                        return p;
-                    }));
-                }
-            }
-        }, 15000); // Check every 15s
-
+        // Fetch-on-mount-then-poll is a standard, valid effect pattern; poll()'s setState
+        // calls happen after an await inside its own try/catch, not synchronously here.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        poll();
+        const interval = setInterval(poll, POLL_INTERVAL_MS);
         return () => clearInterval(interval);
+    }, [poll]);
+
+    const logDelivery = useCallback(
+        async (purokId: number, items: NeedButton[], deliveredBy?: string) => {
+            await apiLogDelivery(purokId, { items, delivered_by: deliveredBy });
+            await poll(); // reflect the real result immediately, not on the next 5s tick
+        },
+        [poll],
+    );
+
+    const triggerEarthquake = useCallback(async () => {
+        setEarthquakeError(null);
+        if (!puroks.some((p) => p.is_simulated)) {
+            // The sequence only ever touches is_simulated puroks (real ones are never
+            // faked) — with none seeded yet it would return 200 and visibly do nothing,
+            // which is indistinguishable from a broken button. Catch that here instead.
+            setEarthquakeError("No simulated puroks exist yet — seed demo data first (POST /api/seed-simulated).");
+            return;
+        }
+        try {
+            const result = await apiSimulateEarthquake();
+            setIsSimulating(true);
+            if (earthquakeTimerRef.current) clearTimeout(earthquakeTimerRef.current);
+            earthquakeTimerRef.current = setTimeout(
+                () => setIsSimulating(false),
+                (result.duration_seconds ?? 18) * 1000 || EARTHQUAKE_DURATION_MS,
+            );
+        } catch {
+            // A failed request must never look identical to "nothing happened" — always
+            // surface it, same reasoning as poll()'s isStale flag.
+            setEarthquakeError("Could not start the demo sequence — the backend may be unreachable.");
+        }
     }, [puroks]);
 
+    useEffect(() => {
+        return () => {
+            if (earthquakeTimerRef.current) clearTimeout(earthquakeTimerRef.current);
+        };
+    }, []);
+
     return (
-        <TingogContext.Provider value={{ puroks, packets, anomalies, ackPacket, dispatchResponse }}>
+        <TingogContext.Provider
+            value={{
+                puroks,
+                escalations,
+                clusters,
+                recentEvents,
+                lastUpdated,
+                isStale,
+                logDelivery,
+                isSimulating,
+                triggerEarthquake,
+                earthquakeError,
+                focusedPurokId,
+                setFocusedPurokId,
+            }}
+        >
             {children}
         </TingogContext.Provider>
     );
@@ -163,7 +144,7 @@ export function TingogProvider({ children }: { children: ReactNode }) {
 export function useTingog() {
     const context = useContext(TingogContext);
     if (context === undefined) {
-        throw new Error('useTingog must be used within a TingogProvider');
+        throw new Error("useTingog must be used within a TingogProvider");
     }
     return context;
 }

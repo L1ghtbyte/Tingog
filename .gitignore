@@ -1,0 +1,8 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+
+# Arduino / PlatformIO build artifacts
+firmware/**/build/
+firmware/**/.pio/
