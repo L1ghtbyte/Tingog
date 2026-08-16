@@ -13,9 +13,9 @@ Total budget: **7 minutes**, demo included, Q&A excluded (no time limit there).
 | 3 | Product Reveal + Name Meaning | **DRAFTED** |
 | 4 | The Four-Step Framework | **DRAFTED** |
 | 5 | Live Demo — Persona-Driven Report | **DRAFTED** |
-| 6 | Differentiator #1, flagged — Clustering | **DRAFTED** |
-| 7 | Differentiator #2, flagged — Honest Silence | **DRAFTED** |
-| 8 | Where AI Fits — Trust Boundary | pending |
+| 6 | Clustering | **DRAFTED** |
+| 7 | Honest Silence Handling | **DRAFTED** |
+| 8 | AI Engineering — Agentic Tool-Calling | **DRAFTED** |
 | 9 | Why Not an App / What Makes Us Different (merged, moved late) | pending |
 | 10 | Deployment & Scale — Vision Grounded in Real Constraints | pending |
 | 11 | Closing — Callback + Local-Language Tagline | pending |
@@ -147,22 +147,20 @@ Total budget: **7 minutes**, demo included, Q&A excluded (no time limit there).
 
 ---
 
-## Stage 6 — Differentiator #1, flagged: Clustering
+## Stage 6 — Clustering
 
 **Revision history:**
 
 1. Old script implied the cluster forms live and sequentially in front of judges ("let's say Purok X also reports... and then Purok Y"). In reality this would come from re-seeded simulated data, already sitting there when the dashboard loads — not something happening step by step. Claiming it's live when it's actually a reveal of pre-existing state is the same category of overclaim caught in Stage 5.
 2. Old script only names two puroks (5 and 7) despite its own next line saying "three separate button presses" — that "three" only worked in the old draft because it was counting the live press from the old (TUBIG) version of Stage 5. Now that Stage 5 is TAMBAL and unrelated, that count needed fixing.
-3. The explicit "this is our differentiator" flag was planned for this stage when the 11-stage structure was set up, but the original script just describes clustering matter-of-factly. Added the flag.
-4. **Fix for #1, better than originally planned:** instead of only revealing pre-seeded data, the presenter presses the real device live (TUBIG) during this stage. Since clustering groups by need type and timing regardless of whether a purok is real or simulated, and the seeded Puroks 1/2's TUBIG events are still well inside the 45-minute cluster window at this point in the pitch, the real press genuinely joins the cluster on screen, live. This makes the "watch this happen" framing true again instead of a soft overclaim, and reinforces Stage 5's mechanism a second time without re-explaining it.
+3. **Fix for #1, better than originally planned:** instead of only revealing pre-seeded data, the presenter presses the real device live (TUBIG) during this stage. Since clustering groups by need type and timing regardless of whether a purok is real or simulated, and the seeded Puroks 1/2's TUBIG events are still well inside the 45-minute cluster window at this point in the pitch, the real press genuinely joins the cluster on screen, live. This makes the "watch this happen" framing true again instead of a soft overclaim, and reinforces Stage 5's mechanism a second time without re-explaining it.
+4. **Removed the "this is our differentiator" flag** (was: "Here's the part that actually sets Tingog apart from a simple notification system."). Rubric analysis (see Stage 8's revision history) found that explicitly labeling clustering/silence-handling as *the* differentiator undersells them and, worse, competes for that framing with Stage 8's AI engineering — which is the piece that actually scores under "Use of AI/Technology" (20% of the rubric) since clustering and silence-handling are both deliberately non-AI, deterministic logic. Clustering and silence-handling now speak for themselves as real system capability; the explicit "differentiator" language is reserved for where it's rubric-load-bearing, in Stage 8.
 
-**Timing:** ~34–36 seconds of speech, plus a physical press-and-wait beat (same shape as Stage 5, not free — flagged honestly).
+**Timing:** ~28–30 seconds of speech, plus a physical press-and-wait beat (same shape as Stage 5, not free — flagged honestly).
 
 **Script:**
 
 > But one report is only the beginning.
->
-> Here's the part that actually sets Tingog apart from a simple notification system.
 >
 > Purok 1 and Purok 2 have already been reporting TUBIG. Let's make it three.
 > *[press button — TUBIG]* *[wait for dashboard update]*
@@ -176,21 +174,19 @@ Total budget: **7 minutes**, demo included, Q&A excluded (no time limit there).
 
 ---
 
-## Stage 7 — Differentiator #2, flagged: Honest Silence Handling
+## Stage 7 — Honest Silence Handling
 
-**Checked proactively before drafting, following what Stage 6 just taught:** can this also be shown as a live trigger, the way clustering was? No — and this is a real constraint, not a missed opportunity. Clustering could go live because a button press is a discrete, triggerable event. Silence-based status is about *elapsed time* — the real thresholds are 6 and 12 hours (`SILENCE_HOURS_WARN`, `STATUS_UNKNOWN_HOURS`). Compressing that into a 35-second stage would mean either faking it or hacking the config the night before the pitch. Neither is worth the risk. This stage is honestly a reveal of pre-existing seeded state, and the script says so rather than implying otherwise.
+**Checked proactively before drafting, following what Stage 6 just taught:** can this also be shown as a live trigger, the way clustering was? No — and this is a real constraint, not a missed opportunity. Clustering could go live because a button press is a discrete, triggerable event. Silence-based status is about *elapsed time* — the real thresholds are 6 and 12 hours (`SILENCE_HOURS_WARN`, `STATUS_UNKNOWN_HOURS`). Compressing that into a 30-second stage would mean either faking it or hacking the config the night before the pitch. Neither is worth the risk. This stage is honestly a reveal of pre-existing seeded state, and the script says so rather than implying otherwise.
 
 **What changed from the old script:**
-1. Added the explicit "this is our second differentiator" flag, matching Stage 6's technique without repeating its exact wording — the two differentiator stages now read as a pair judges can track.
-2. Replaced the abstract description ("if we don't receive a report... we shouldn't assume they're fine") with a specific, real data point: Purok 4's last signal was a held TABANG press 14 hours ago, nothing since. A concrete thing to point at beats a hypothetical.
+1. Replaced the abstract description ("if we don't receive a report... we shouldn't assume they're fine") with a specific, real data point: Purok 4's last signal was a held TABANG press 14 hours ago, nothing since. A concrete thing to point at beats a hypothetical.
+2. **Removed the "this is our second differentiator" flag** (was: "Here's the second thing that sets Tingog apart — how we handle *not* hearing from someone."). Same reasoning as Stage 6's fix #4 — this stays real, demonstrated system behavior; the rubric-facing "differentiator" framing moved to Stage 8, where it's actually backed by the AI/Technology scoring category.
 
-**Timing:** ~34–36 seconds. Continues on the live dashboard from Stages 5–6, no separate slide.
+**Timing:** ~28–30 seconds. Continues on the live dashboard from Stages 5–6, no separate slide.
 
 **Script:**
 
 > And there's another problem during disasters: silence.
->
-> Here's the second thing that sets Tingog apart — how we handle *not* hearing from someone.
 >
 > Look at Purok 4. *[point to Purok 4 on the dashboard]* Its last signal was fourteen hours ago — someone holding down the help button. Nothing since.
 >
@@ -200,6 +196,35 @@ Total budget: **7 minutes**, demo included, Q&A excluded (no time limit there).
 
 ---
 
-## Stages 8–11
+## Stage 8 — AI Engineering: Agentic Tool-Calling
 
-Not yet drafted — waiting on Stage 7 sign-off.
+**Why this stage was restructured, not just drafted:** the judging rubric weights "Use of AI/Technology" at 20% — tied for the single highest-weighted category, alongside "Innovation and Creativity." Clustering (Stage 6) and silence-handling (Stage 7) are real, working, and worth showing — but both are deliberately deterministic logic with zero LLM involvement (by design, so a safety-critical alert never depends on an API call succeeding). They can't score under "Use of AI/Technology" no matter how they're framed. The actual AI engineering — the agentic tool-calling loop in `briefing_agent.py` — was previously undersold as a quick "we also have an AI summary" beat. Moved the "differentiator" framing here, where it's rubric-load-bearing, and gave it real room.
+
+**Revision history:**
+1. First draft under-described what the system does technically — no mention of "agentic," no naming of what the tools actually do. Fixed: names "agentic tool-calling" explicitly, and lists four real tool capabilities in plain language (check who hasn't reported in, check severity, check clustering, recall prior briefings) — technical, but understandable without a CS background.
+2. First draft included an implicit put-down of other teams ("that's what most AI features in a hackathon actually are"). Flagged as unnecessary and possibly undermining — cut, replaced with a self-contained contrast that makes the same point without comparing to anyone else ("This isn't one API call that returns text...").
+3. Re-verified against the actual running code before finalizing (`briefing_agent.py`, `tools.py`, full read): confirmed the tool-calling loop is real (`_run_tool_calling_session`, up to 6 iterations, model decides which of 7 tools to call), the Figure Checker is real deterministic Python checking every claim/number against actual DB results (never a second LLM call), the retry-once-then-raw-fallback pattern is real, and escalation/clustering/silence-detection genuinely never import or touch any LLM client.
+4. **Cut the "this is a real response, captured during testing... not run live" framing.** That line was explaining infrastructure timing the audience doesn't need — this project's honesty obligations are about disclosing fabricated *data* (SIMULATED badges, honest "unknown" over false "all clear"), not narrating whether a specific demo beat is live or pre-run. If a judge asks in Q&A, answer honestly then; no need to spend script time on it up front.
+
+**Timing:** ~85–90 seconds. The largest single stage in the pitch by design — Stage 10 gets trimmed to pay for it.
+
+**Script:**
+
+> One more thing — let's ask Tingog to make sense of all of this.
+> *[show the captured response on screen, read aloud as part of the same breath]*
+>
+> It told us something like: a medicine need was reported, three puroks are reporting water, and Purok 4 hasn't been heard from in fourteen hours.
+>
+> Here's what that actually involved — and this is the part worth being precise about. This isn't one API call that returns text. It's agentic tool-calling: the model reasons about what it actually needs, and decides for itself which of several tools to call — check who hasn't reported in, check who's at the highest severity, look for clusters forming, even recall what it told a coordinator last time — then reads what comes back, and decides whether it needs to look at more before it answers, or ask a clarifying question instead.
+>
+> And the cluster, the silence alert — none of that waited for any of this. That's deliberate: a safety-critical alert can't depend on an API call succeeding, so the moment something's genuinely urgent, we don't even touch AI.
+>
+> Every claim it does make gets checked against real records first — not by asking another AI to check itself, which can still hallucinate agreement with its own mistake, but by actual code.
+>
+> It can summarize. It doesn't decide. That's still the coordinator's call.
+
+---
+
+## Stages 9–11
+
+Not yet drafted — waiting on Stage 8 sign-off.

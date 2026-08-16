@@ -13,7 +13,7 @@ Companion to `SCRIPT.md`. **Slides and stages are not 1:1** — one slide can ho
 | 5 | Live Demo (title card only) | 5, 6, 7 | **SPECIFIED** |
 | — | *(no separate slide — see Slide 5)* | — | — |
 | — | *(no separate slide — see Slide 5)* | — | — |
-| 8 | Where AI Fits | 8 | pending |
+| 8 | AI Engineering — Agentic Loop Flowchart | 8 | **SPECIFIED** |
 | 9 | What's Different — comparison | 9 | pending (may split into 2) |
 | 10 | Scale & Roadmap | 10 | pending (may split into 2) |
 | 11 | Closing | 11 | pending |
@@ -74,6 +74,45 @@ Companion to `SCRIPT.md`. **Slides and stages are not 1:1** — one slide can ho
 
 ---
 
-## Slides 6–11
+## Slide 8 — AI Engineering: the agentic loop
+
+**Covers:** Stage 8. Follows directly from Slide 5's live-dashboard sequence — the "ask Tingog" moment opens on the same screen (the captured response shown/read there), then this slide takes over the instant the script turns to "here's what that actually involved."
+
+**On screen:** a flowchart, split into two clearly separated lanes so the "we don't even touch AI for safety-critical alerts" line has something to point at, not just say. Built from the actual code paths (`briefing_agent.py`, `tools.py`, `escalation.py`/`clustering.py`), not an idealized version:
+
+```mermaid
+flowchart TB
+    subgraph L1["Always-on — never touches AI"]
+        direction TB
+        A1[Button press] --> A2[Event ingested]
+        A2 --> A3["Deterministic inference\n(severity, status, clustering, silence)"]
+        A3 --> A4["Dashboard + escalation log\nupdate immediately"]
+    end
+
+    subgraph L2["On-demand — coordinator asks a question"]
+        direction TB
+        B1["Coordinator asks Tingog"] --> B2["Model reasons: what do I actually need?"]
+        B2 --> B3{"Call a tool?"}
+        B3 -- yes --> B4["Tool runs against real data:\nunaccounted puroks / high severity /\nclusters / anomalies / recent activity /\npurok detail / prior briefing"]
+        B4 --> B2
+        B3 -- "enough info" --> B5["Draft answer\n(claims + narrative)"]
+        B3 -- "still unclear" --> B6["Ask a clarifying question"]
+        B5 --> B7["Figure Checker:\nevery claim + every number\nchecked against real tool results\n(plain code, not another AI)"]
+        B7 -- pass --> B8["Answer shown to coordinator"]
+        B7 -- fail --> B9["Retry once with the\nspecific mismatch"]
+        B9 --> B7
+        B7 -- "fails again" --> B10["Raw fallback:\nshow the real data directly,\nno generated prose"]
+    end
+
+    L1 -.->|"informs, but the loop above\nnever waits on this"| L2
+```
+
+**Why two lanes, not one diagram:** the script's central claim in this stage is that the safety-critical path (top lane) is architecturally independent of the AI path (bottom lane) — a slow or failed API call can never delay a real alert. Two visually separated lanes make that a property of the picture, not just a line in the narration. The bottom lane's loop-back arrows (tool call → back to reasoning, failed check → retry) are what make "agentic" and "checked against real records" legible at a glance instead of asserted.
+
+**Delivery note:** the presenter doesn't walk the whole diagram line by line — it's a visual anchor behind the spoken script, with maybe two direct callouts: pointing at the `B3` decision diamond when saying "decides for itself which tools to call," and pointing at `B7`/`B9` when saying "checked against real records... not another AI checking itself."
+
+---
+
+## Slides 9–11
 
 Not yet specified — waiting on their corresponding script stages.
