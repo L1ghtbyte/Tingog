@@ -1,11 +1,21 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
+from app import crud
 from app.agent.briefing_agent import run_briefing
 from app.routers.puroks import get_db
-from app.schemas import BriefingResponse
+from app.schemas import BriefingResponse, LastBriefingOut
 
 router = APIRouter(prefix="/api", tags=["briefing"])
+
+
+@router.get("/briefing/last", response_model=LastBriefingOut | None)
+async def get_last_briefing(db: Session = Depends(get_db)):
+    """Passive read of the most recently saved briefing — no agent run, no LLM call,
+    just the last thing that was actually generated. Returns null if nothing has been
+    generated yet this session. For a dashboard to show *something* on load without
+    forcing a fresh (slower, LLM-backed) request the moment the page opens."""
+    return crud.get_latest_briefing_record(db)
 
 
 @router.get("/briefing", response_model=BriefingResponse)

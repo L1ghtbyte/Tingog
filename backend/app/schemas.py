@@ -85,6 +85,19 @@ class BriefingResponse(BaseModel):
     conversation_id: str | None = None
 
 
+class LastBriefingOut(BaseModel):
+    """The most recently saved BriefingRecord, for passive display without
+    triggering a fresh agent run. Only mode="briefed" results are ever saved
+    (see BriefingRecord's docstring), so narrative/claims are never None here —
+    this is None only when no briefing has ever succeeded yet."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    narrative: str
+    claims: list[dict[str, Any]]
+    created_at: datetime
+
+
 class ClusterOut(BaseModel):
     """Dashboard-facing exposure of clustering.get_active_clusters() — previously only
     available to the Briefing Agent's internal tools, needed as a real public endpoint

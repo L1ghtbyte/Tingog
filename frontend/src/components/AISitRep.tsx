@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-import { getBriefing } from "../api/client";
+import { getBriefing, getLastBriefing } from "../api/client";
 import type { BriefingResponse, EscalationKind, EscalationOut, PurokOut } from "../api/types";
 import { useTingog } from "../context/TingogContext";
 
@@ -68,9 +68,33 @@ export function AISitRep() {
     const [question, setQuestion] = useState("");
     const [conversationId, setConversationId] = useState<string | undefined>(undefined);
     const [response, setResponse] = useState<BriefingResponse | null>(null);
+    const [lastBriefingAt, setLastBriefingAt] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [now] = useState(() => Date.now());
+
+    // Passive load on mount — the last saved briefing, no agent run. Lets the panel
+    // show something real immediately instead of empty, without forcing a fresh
+    // (slower, LLM-backed) request the moment the page opens.
+    useEffect(() => {
+        getLastBriefing()
+            .then((last) => {
+                if (!last) return;
+                setResponse({
+                    mode: "briefed",
+                    claims: last.claims,
+                    narrative: last.narrative,
+                    clarifying_question: null,
+                    tool_results: {},
+                    conversation_id: null,
+                });
+                setLastBriefingAt(last.created_at);
+            })
+            .catch(() => {
+                // No saved briefing yet, or backend briefly unreachable at mount —
+                // the ASK button still works either way, so fail silently here.
+            });
+    }, []);
 
     const handleAsk = async () => {
         setIsLoading(true);
@@ -78,6 +102,7 @@ export function AISitRep() {
         try {
             const result = await getBriefing(question.trim() || undefined, conversationId);
             setResponse(result);
+            setLastBriefingAt(null); // fresh, on-demand result — not the passive last-saved one
             if (result.conversation_id) setConversationId(result.conversation_id);
             setQuestion("");
         } catch {
@@ -126,6 +151,11 @@ export function AISitRep() {
                 )}
                 {response?.mode === "briefed" && (
                     <div className="flex flex-col gap-2">
+                        {lastBriefingAt && (
+                            <p className="text-[10px] text-on-surface-variant italic">
+                                Last generated {formatTime(lastBriefingAt, now)} — ask a question for a fresh check.
+                            </p>
+                        )}
                         <p className="text-xs text-on-surface leading-relaxed">{response.narrative}</p>
                         {referencedPuroks.length > 0 && (
                             <div className="flex flex-wrap gap-1">

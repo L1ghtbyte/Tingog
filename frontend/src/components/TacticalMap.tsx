@@ -8,7 +8,11 @@ import type { PurokDetailOut, PurokOut } from "../api/types";
 import { useTingog } from "../context/TingogContext";
 import { DeliveryAction } from "./DeliveryAction";
 
-export type MapFilter = "ALL" | "CRITICAL" | "NEEDS" | "SILENT" | "LUWAS";
+// "OK" is the UI-facing name for the fifth button. The wire protocol and backend
+// still use "LUWAS" (matches the real hardware silkscreen/firmware) — this filter
+// key is purely a frontend UI concept with no backend coupling, so it's safe to
+// rename independently. See ARCHITECTURE.md §4 for why the display name changed.
+export type MapFilter = "ALL" | "CRITICAL" | "NEEDS" | "SILENT" | "OK";
 
 interface TacticalMapProps {
     filter: MapFilter;
@@ -40,6 +44,20 @@ function createMarkerIcon(purok: PurokOut): L.DivIcon {
         </div>
     `;
     return L.divIcon({ html, className: "tingog-marker-icon", iconSize: [16, 16], iconAnchor: [8, 8] });
+}
+
+// English gloss shown alongside each Bisaya need-button name — local relevance
+// without asking judges (or coordinators) to already know Bisaya.
+const NEED_TRANSLATIONS: Record<string, string> = {
+    TABANG: "Help",
+    TUBIG: "Water",
+    TAMBAL: "Medicine",
+    PAGKAON: "Food",
+};
+
+function formatNeed(need: string): string {
+    const translation = NEED_TRANSLATIONS[need];
+    return translation ? `${need} (${translation})` : need;
 }
 
 function formatTime(iso: string | null, now: number): string {
@@ -124,7 +142,7 @@ export function TacticalMap({ filter, isDarkMode, mapStyle }: TacticalMapProps) 
         // "All clear" — a real stable status with nothing currently reported, not a
         // client-side reconstruction of the LUWAS press itself (no hours_since_heartbeat
         // field exists to derive it from anyway).
-        if (filter === "LUWAS") return p.active_needs.length === 0 && p.status === "stable";
+        if (filter === "OK") return p.active_needs.length === 0 && p.status === "stable";
         return true;
     });
 
@@ -238,10 +256,13 @@ export function TacticalMap({ filter, isDarkMode, mapStyle }: TacticalMapProps) 
                                         </div>
                                         <div>
                                             <span className="text-on-surface-variant">NEEDS:</span>{" "}
-                                            {p.active_needs.length > 0 ? p.active_needs.join(", ") : "none reported"}
+                                            {p.active_needs.length > 0 ? p.active_needs.map(formatNeed).join(", ") : "none reported"}
                                         </div>
                                         <div>
                                             <span className="text-on-surface-variant">LEADER:</span> {p.purok_leader ?? "unset"}
+                                        </div>
+                                        <div>
+                                            <span className="text-on-surface-variant">VULNERABLE HH:</span> {p.baseline_vulnerable_count}
                                         </div>
                                         {p.severity_reasons.length > 0 && (
                                             <div>

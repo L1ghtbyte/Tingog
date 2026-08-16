@@ -3,6 +3,7 @@ import type {
     ClusterOut,
     DeliveryCreateIn,
     EscalationOut,
+    LastBriefingOut,
     PurokDetailOut,
     PurokOut,
     RecentEventOut,
@@ -39,6 +40,9 @@ export const getBriefing = (question?: string, conversationId?: string) => {
     const query = params.toString();
     return apiGet<BriefingResponse>(`/api/briefing${query ? `?${query}` : ""}`);
 };
+
+// Passive read — no agent run, no LLM call. Null if nothing's been generated yet.
+export const getLastBriefing = () => apiGet<LastBriefingOut | null>("/api/briefing/last");
 
 export const logDelivery = (purokId: number, body: DeliveryCreateIn) =>
     apiPost<PurokDetailOut>(`/api/puroks/${purokId}/deliveries`, body);

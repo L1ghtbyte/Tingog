@@ -8,12 +8,30 @@ function pressedButtons(event: RecentEventOut): string[] {
     return event.button === "COMBO" ? event.combo_buttons ?? [] : [event.button];
 }
 
+// Wire protocol always sends "LUWAS" (matches the real hardware/firmware) — only
+// the text shown to a viewer changed to "OK", after finding LUWAS doesn't actually
+// translate to "safe" (closer to "to go out/escape"). See ARCHITECTURE.md §4.
+// English glosses on the need buttons are for local relevance — judges shouldn't
+// need to already know Bisaya to read this panel.
+const NEED_TRANSLATIONS: Record<string, string> = {
+    TABANG: "Help",
+    TUBIG: "Water",
+    TAMBAL: "Medicine",
+    PAGKAON: "Food",
+};
+
+function displayButtonName(button: string): string {
+    if (button === "LUWAS") return "OK";
+    const translation = NEED_TRANSLATIONS[button];
+    return translation ? `${button} (${translation})` : button;
+}
+
 // Real single/hold/double/combo gesture taxonomy — replaces the old is_double_press
 // boolean, which collapsed the backend's already-correct Event.press_type +
 // Event.combo_buttons into a yes/no flag. Purely a frontend fix, no firmware/backend
 // coordination needed (the backend always tracked this correctly).
 function formatPressLabel(event: RecentEventOut): string {
-    const buttons = pressedButtons(event);
+    const buttons = pressedButtons(event).map(displayButtonName);
     if (event.button === "COMBO") return `COMBO: ${buttons.join(" + ")}`;
     if (event.press_type === "hold") return `${buttons[0]} — HELD`;
     if (event.press_type === "double") return `${buttons[0]} — DOUBLE PRESS`;

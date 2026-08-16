@@ -90,6 +90,14 @@ export interface BriefingResponse {
     conversation_id: string | null;
 }
 
+// The last successfully saved briefing (mode="briefed" only) — for passive
+// display on load without forcing a fresh, LLM-backed run.
+export interface LastBriefingOut {
+    narrative: string;
+    claims: Record<string, unknown>[];
+    created_at: string;
+}
+
 export interface DeliveryCreateIn {
     items: NeedButton[];
     delivered_by?: string;
