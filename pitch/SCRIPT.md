@@ -10,7 +10,7 @@ Total budget: **7 minutes**, demo included, Q&A excluded (no time limit there).
 |---|---|---|
 | 1 | Opening — shared stake | **DRAFTED** |
 | 2 | The Problem | **DRAFTED** |
-| 3 | Product Reveal + Name Meaning | pending |
+| 3 | Product Reveal + Name Meaning | **DRAFTED** |
 | 4 | The Four-Step Framework | pending |
 | 5 | Live Demo — Persona-Driven Report | pending |
 | 6 | Differentiator #1, flagged — Clustering | pending |
@@ -65,6 +65,28 @@ Total budget: **7 minutes**, demo included, Q&A excluded (no time limit there).
 
 ---
 
-## Stages 3–11
+## Stage 3 — Product Reveal + Name Meaning
 
-Not yet drafted — waiting on Stage 2 sign-off.
+**What changed:** one word-level fix. "Tingog means voice" → "Tingog is Bisaya for voice" — Bant.ai names the language explicitly ("Bisaya for to watch over"), not just the meaning. Naming the language here also quietly plants the fact before it's needed — if a judge later asks about the Bisaya button labels, the grounding language was already established here, not introduced reactively when challenged.
+
+**What's already stronger than it looks:** "A purok's status should not depend on a person reaching it" wasn't rewritten, but it reads better now than it did before the Stage 2 fix — "a person reaching it" is literally the health-worker-survey bottleneck Stage 2 just described. That connection is a byproduct of getting Stage 2's facts right, not something deliberately engineered here.
+
+**Considered and left alone:** could echo Stage 1's exact phrase ("not eventually. Immediately.") in the closing line instead of "when normal communication fails." Decided against forcing it — twice in under a minute risks sounding repeated rather than reinforcing. Revisit if the motif feels too weak once the whole script is read end to end.
+
+**Timing:** ~19–20 seconds.
+
+**Script:**
+
+> That's the problem we wanted to solve.
+> Our idea was simple: a purok's status should not depend on a person reaching it.
+>
+> We are L1ghtbyte, and this is Tingog.
+> Tingog is Bisaya for voice.
+>
+> And that's exactly what we want to give every purok — a voice when normal communication fails.
+
+---
+
+## Stages 4–11
+
+Not yet drafted — waiting on Stage 3 sign-off.

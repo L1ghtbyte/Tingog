@@ -8,7 +8,7 @@ Companion to `SCRIPT.md`. **Slides and stages are not 1:1** — one slide can ho
 |---|---|---|---|
 | 1 | Title | 1 | **SPECIFIED** |
 | 2 | The Problem | 2 | **SPECIFIED** |
-| 3 | Meet Tingog | 3 | pending |
+| 3 | Meet Tingog | 3 | **SPECIFIED** |
 | 4 | The Four Steps | 4 | pending |
 | 5 | Live Demo (title card only) | 5 | pending |
 | 6 | Bigger Picture (clustering) | 6 | pending |
@@ -42,6 +42,16 @@ Companion to `SCRIPT.md`. **Slides and stages are not 1:1** — one slide can ho
 
 ---
 
-## Slides 3–11
+## Slide 3 — Meet Tingog
+
+**Covers:** Stage 3.
+
+**On screen:** the actual TINGOG wordmark/icon already built into the dashboard header (`frontend/src/assets/word-dark.png` / `icon-dark.png` — the real product asset, not a separate pitch-only logo treatment), large and centered, appearing the moment "this is Tingog" is said. Small text, "Bisaya for voice," fades in directly beneath it exactly as that line is spoken — on-screen text gives judges a beat to actually register the name meaning, not just hear it once and lose it.
+
+**Why reuse the dashboard asset:** keeps the pitch deck and the actual product visually the same thing, not a separately-designed pitch identity that happens to share a name. Judges seeing this wordmark now will recognize it again the moment the live demo starts.
+
+---
+
+## Slides 4–11
 
 Not yet specified — waiting on their corresponding script stages.
