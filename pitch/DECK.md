@@ -14,9 +14,9 @@ Companion to `SCRIPT.md`. **Slides and stages are not 1:1** — one slide can ho
 | — | *(no separate slide — see Slide 5)* | — | — |
 | — | *(no separate slide — see Slide 5)* | — | — |
 | 8 | AI Engineering — Agentic Loop Flowchart | 8 | **SPECIFIED** |
-| 9 | What's Different — comparison | 9 | pending (may split into 2) |
-| 10 | Scale & Roadmap | 10 | pending (may split into 2) |
-| 11 | Closing | 11 | pending |
+| 9 | Why Not an App | 9 | **SPECIFIED** |
+| 10 | Scale & Roadmap | 10 | **SPECIFIED** |
+| 11 | Closing | 11 | **SPECIFIED** |
 
 ---
 
@@ -113,6 +113,30 @@ flowchart TB
 
 ---
 
-## Slides 9–11
+## Slide 9 — Why Not an App
 
-Not yet specified — waiting on their corresponding script stages.
+**Covers:** Stage 9.
+
+**On screen:** simple two-column comparison, same dark theme. Left column, labeled "An app assumes," lists three short lines that fade in with the spoken clauses: "charged phone" / "cell signal" / "one per person." Right column, labeled "Tingog doesn't need," lists the counters as they're spoken: "shared device" / "direct link" / "no account." No icons needed beyond the wordmark's existing visual language — this slide is about the words being visually paired, not illustrated.
+
+**Why this plain:** the contrast is the entire argument; anything more elaborate (device photos, phone mockups) risks looking like it's mocking a competitor rather than stating a design tradeoff. Matches Slide 1's instinct that some beats are carried by words, not imagery.
+
+---
+
+## Slide 10 — Scale & Roadmap
+
+**Covers:** Stage 10.
+
+**On screen:** a small diagram, left-to-right: several purok-device icons converging on one gateway icon (visualizing "the same gateway can already listen to many devices at once") — reuses the button/radio-wave icon language from Slide 4 rather than inventing new iconography. Below it, a compact "Today → Next" strip: "ESP-NOW (meters–hundreds of meters)" fading in with that line, then an arrow to "LoRa (kilometers)" fading in with "our planned upgrade path." Not a detailed technical diagram like Slide 8 — just enough to make "many devices, one gateway" and "today vs. planned" visually legible at a glance.
+
+**Why this shape:** keeps the scale claim concrete (a real many-to-one architecture already built) clearly separate from the roadmap claim (LoRa, planned but not yet built) — the visual shouldn't blur "what we have" into "what we're planning," matching the script's own care about that distinction.
+
+---
+
+## Slide 11 — Closing
+
+**Covers:** Stage 11.
+
+**On screen:** mirrors Slide 1's minimalism deliberately — the TINGOG wordmark, centered, reappearing on the same dark theme. As the presenter says "it doesn't get to take your voice too," small text fades in beneath the wordmark: *"Because your voice shouldn't be the next thing a disaster takes."* Holds through "Thank you," then out to Q&A.
+
+**Why bookend Slide 1:** the script's closing is an explicit callback (Stage 1 → Stage 3 → Stage 11's full-circle "voice" throughline); reusing Slide 1's exact visual treatment makes that callback register visually too, not just in the words — a judge who registered the plain wordmark at the very start sees it return at the very end, unchanged, while everything around it has been proven to work.

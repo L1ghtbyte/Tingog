@@ -16,9 +16,9 @@ Total budget: **7 minutes**, demo included, Q&A excluded (no time limit there).
 | 6 | Clustering | **DRAFTED** |
 | 7 | Honest Silence Handling | **DRAFTED** |
 | 8 | AI Engineering — Agentic Tool-Calling | **DRAFTED** |
-| 9 | Why Not an App / What Makes Us Different (merged, moved late) | pending |
-| 10 | Deployment & Scale — Vision Grounded in Real Constraints | pending |
-| 11 | Closing — Callback + Local-Language Tagline | pending |
+| 9 | Why Not an App / What Makes Us Different (merged, moved late) | **DRAFTED** |
+| 10 | Deployment & Scale — Vision Grounded in Real Constraints | **DRAFTED** |
+| 11 | Closing — Callback + Local-Language Tagline | **DRAFTED** |
 
 ---
 
@@ -225,6 +225,54 @@ Total budget: **7 minutes**, demo included, Q&A excluded (no time limit there).
 
 ---
 
-## Stages 9–11
+## Stage 9 — Why Not an App / What Makes Us Different
 
-Not yet drafted — waiting on Stage 8 sign-off.
+**Where this sits:** deliberately placed after the live demo (Stages 5–8), not right after the product reveal — judges have already watched the system work before being asked to consider the alternative. Also the payoff for two earlier deferrals: Stage 2 was cut down to one scene-setting clause on comms failure ("Channel failure belongs to Stage 9's argument"), and Stage 5 cut its own "why not a phone" aside twice for the same reason. This is where that argument actually gets made, once, in full.
+
+**Framing check before drafting:** per the standing correction on acute-stress language, this stays about *sustained degraded conditions* (power gone for days, phones uncharged, data unaffordable) and the *shared-device* model (one purok, one device) — not "people too panicked to use an app," which was already ruled out as the wrong framing earlier in this project.
+
+**Timing:** ~38–42 seconds.
+
+**Script:**
+
+> You might be wondering — why not just an app?
+>
+> Because an app assumes exactly what a disaster takes away: charged phones, a cell signal, one device per person — and days into a blackout, none of that holds.
+>
+> Tingog doesn't need any of it. One physical device covers an entire purok — a shared point, not something each household has to individually own, install, and keep charged. It talks directly to our gateway. No cell tower. No internet. No account.
+>
+> That's not a smaller version of an app. It's built for the actual conditions a disaster leaves behind.
+
+---
+
+## Stage 10 — Deployment & Scale
+
+**Revision history:**
+1. First draft closed on naming a real, honest limitation directly: "real barangay-scale radio range is still something we need to field-test, not something we're claiming tonight." Flagged as counterproductive — not because honesty is wrong (this project's entire ethos is disclosed limitations, e.g. SIMULATED badges, honest `unknown` status), but because this specific claim asserted an *unverified negative* ("built for the range you can demo on a stage, not a whole barangay") rather than the actual known fact (range at real scale is untested, not confirmed small). That's an overclaim in the deprecating direction — worse than unflattering, actually inaccurate — and risks reading as "this doesn't really work," which undermines "Impact & Scalability" credibility rather than protecting it.
+2. Fixed by replacing the unverified negative with a plain, well-documented comparison of the two radio technologies themselves (ESP-NOW's realistic range vs. LoRa's) rather than a claim about our own untested setup — more accurate *and* more confident. LoRa was a real technology the team considered early and deferred only for hackathon-timeline reasons, not ruled out technically — naming it as the concrete planned upgrade path is a stronger scalability answer than a bare admission of an untested gap.
+
+**Timing:** ~46–49 seconds.
+
+**Script:**
+
+> This isn't locked to one purok. The same gateway can already listen to many purok devices at once — what you saw tonight is one small barangay's worth, not the ceiling.
+>
+> And Tingog isn't meant to replace the people already responsible for this — barangay officials, DRRMO, BHWs. It's meant to give them a faster, more honest picture than they've had, using hardware cheap enough to put in every purok.
+>
+> Right now, each purok device reaches the gateway over ESP-NOW — a direct, low-power mesh, no cell tower or internet needed. Our planned upgrade path is LoRa: same idea, trading some speed for real distance — kilometers instead of hundreds of meters, as we scale to full barangay coverage.
+
+---
+
+## Stage 11 — Closing
+
+**What it's doing:** full-circle callback to Stage 1's "heard... immediately" and Stage 3's "Tingog is Bisaya for voice" — the same closing technique Bant.ai used with "Bantay," reserved for the actual end rather than repeated early (Stage 3 explicitly declined to echo Stage 1 too soon, for exactly this reason — the distance was too short then; it's earned now). "Roads" is a new callback too, pointing back at Stage 2's specific bottleneck (a health worker physically going out to survey) rather than a generic disaster image.
+
+**Timing:** ~10–12 seconds.
+
+**Script:**
+
+> A disaster can take the power, the roads, the signal.
+>
+> It doesn't get to take your voice too.
+>
+> This is Tingog. Thank you.
