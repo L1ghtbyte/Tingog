@@ -10,9 +10,9 @@ Companion to `SCRIPT.md`. **Slides and stages are not 1:1** — one slide can ho
 | 2 | The Problem | 2 | **SPECIFIED** |
 | 3 | Meet Tingog | 3 | **SPECIFIED** |
 | 4 | The Four Steps | 4 | **SPECIFIED** |
-| 5 | Live Demo (title card only) | 5, 6 | **SPECIFIED** |
+| 5 | Live Demo (title card only) | 5, 6, 7 | **SPECIFIED** |
 | — | *(no separate slide — see Slide 5)* | — | — |
-| 7 | Silence ≠ Safe | 7 | pending |
+| — | *(no separate slide — see Slide 5)* | — | — |
 | 8 | Where AI Fits | 8 | pending |
 | 9 | What's Different — comparison | 9 | pending (may split into 2) |
 | 10 | Scale & Roadmap | 10 | pending (may split into 2) |
@@ -66,11 +66,11 @@ Companion to `SCRIPT.md`. **Slides and stages are not 1:1** — one slide can ho
 
 ## Slide 5 — Live Demo (title card only)
 
-**Covers:** Stages 5 *and* 6 — both are continuous live-dashboard action, not separate visual moments. Updated once Stage 6 was drafted: it's a second press on the same real device, watched on the same screen, not a cut to a new slide.
+**Covers:** Stages 5, 6, *and* 7 — all three are one continuous live-dashboard sequence, not separate visual moments. Stage 7 doesn't add a new press (it can't — silence is time-based, not triggerable), just a shift in attention to a different, already-seeded purok card on the same screen.
 
-**On screen:** minimal — a plain "LIVE DEMO" title card, shown only while the presenter walks to the physical device at the start of Stage 5. Once the first button's pressed, the slide is irrelevant for the rest of both stages — attention stays on the physical module, the gateway, and the actual laptop screen (mirrored/projected if possible) through both the single-report reveal (Stage 5) and the second press that joins the cluster (Stage 6).
+**On screen:** minimal — a plain "LIVE DEMO" title card, shown only while the presenter walks to the physical device at the start of Stage 5. Once the first button's pressed, the slide is irrelevant for the rest of Stages 5–7 — attention stays on the physical module, the gateway, and the actual laptop screen (mirrored/projected if possible) through the single-report reveal, the second press that joins the cluster, and finally pointing at Purok 4's silence.
 
-**Real requirement, not a design note:** the dashboard needs to be visibly showing the real device's card before the first press, clearly update after it, and then clearly show the cluster line appear after the second press. All of this depends on the dashboard being in a clean, readable, correctly-seeded state at that moment — worth a full rehearsal with the physical hardware end to end, not just trusting the script.
+**Real requirement, not a design note:** the dashboard needs to be visibly showing the real device's card before the first press, clearly update after it, clearly show the cluster line appear after the second press, and Purok 4 needs to actually still be sitting at its 14-hour-silent, `unknown` state when this stage happens — which depends on re-seeding at the right time before going on stage, not mid-pitch. Worth a full rehearsal with the physical hardware end to end.
 
 ---
 

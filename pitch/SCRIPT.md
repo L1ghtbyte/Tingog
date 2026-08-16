@@ -14,7 +14,7 @@ Total budget: **7 minutes**, demo included, Q&A excluded (no time limit there).
 | 4 | The Four-Step Framework | **DRAFTED** |
 | 5 | Live Demo — Persona-Driven Report | **DRAFTED** |
 | 6 | Differentiator #1, flagged — Clustering | **DRAFTED** |
-| 7 | Differentiator #2, flagged — Honest Silence | pending |
+| 7 | Differentiator #2, flagged — Honest Silence | **DRAFTED** |
 | 8 | Where AI Fits — Trust Boundary | pending |
 | 9 | Why Not an App / What Makes Us Different (merged, moved late) | pending |
 | 10 | Deployment & Scale — Vision Grounded in Real Constraints | pending |
@@ -176,6 +176,30 @@ Total budget: **7 minutes**, demo included, Q&A excluded (no time limit there).
 
 ---
 
-## Stages 7–11
+## Stage 7 — Differentiator #2, flagged: Honest Silence Handling
 
-Not yet drafted — waiting on Stage 6 sign-off.
+**Checked proactively before drafting, following what Stage 6 just taught:** can this also be shown as a live trigger, the way clustering was? No — and this is a real constraint, not a missed opportunity. Clustering could go live because a button press is a discrete, triggerable event. Silence-based status is about *elapsed time* — the real thresholds are 6 and 12 hours (`SILENCE_HOURS_WARN`, `STATUS_UNKNOWN_HOURS`). Compressing that into a 35-second stage would mean either faking it or hacking the config the night before the pitch. Neither is worth the risk. This stage is honestly a reveal of pre-existing seeded state, and the script says so rather than implying otherwise.
+
+**What changed from the old script:**
+1. Added the explicit "this is our second differentiator" flag, matching Stage 6's technique without repeating its exact wording — the two differentiator stages now read as a pair judges can track.
+2. Replaced the abstract description ("if we don't receive a report... we shouldn't assume they're fine") with a specific, real data point: Purok 4's last signal was a held TABANG press 14 hours ago, nothing since. A concrete thing to point at beats a hypothetical.
+
+**Timing:** ~34–36 seconds. Continues on the live dashboard from Stages 5–6, no separate slide.
+
+**Script:**
+
+> And there's another problem during disasters: silence.
+>
+> Here's the second thing that sets Tingog apart — how we handle *not* hearing from someone.
+>
+> Look at Purok 4. *[point to Purok 4 on the dashboard]* Its last signal was fourteen hours ago — someone holding down the help button. Nothing since.
+>
+> A system that assumes silence means safety would call this "fine." Tingog doesn't. It's marked unknown — because we genuinely don't know, and guessing wrong here could mean nobody checks on them at all.
+>
+> Unknown is uncomfortable. But it's more honest than a false "all clear."
+
+---
+
+## Stages 8–11
+
+Not yet drafted — waiting on Stage 7 sign-off.
