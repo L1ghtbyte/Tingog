@@ -4,7 +4,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
-export type MapFilter = 'ALL' | 'CRITICAL' | 'NEEDS' | 'SILENT';
+export type MapFilter = 'ALL' | 'CRITICAL' | 'NEEDS' | 'SILENT' | 'LUWAS';
 
 interface TacticalMapProps {
     filter: MapFilter;
@@ -47,6 +47,7 @@ export function TacticalMap({ filter, isDarkMode, mapStyle }: TacticalMapProps) 
         if (filter === 'CRITICAL') return p.active_needs.includes('TABANG');
         if (filter === 'NEEDS') return p.active_needs.some(n => ['TUBIG', 'TAMBAL', 'PAGKAON'].includes(n)) && !p.active_needs.includes('TABANG');
         if (filter === 'SILENT') return p.status === 'unknown' || p.hours_since_heartbeat > 6;
+        if (filter === 'LUWAS') return p.active_needs.length === 0 && p.status !== 'unknown' && p.hours_since_heartbeat <= 6;
         return true;
     });
 
