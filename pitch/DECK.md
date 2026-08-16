@@ -137,6 +137,8 @@ flowchart TB
 
 **Covers:** Stage 11.
 
-**On screen:** mirrors Slide 1's minimalism deliberately — the TINGOG wordmark, centered, reappearing on the same dark theme. As the presenter says "it doesn't get to take your voice too," small text fades in beneath the wordmark: *"Because your voice shouldn't be the next thing a disaster takes."* Holds through "Thank you," then out to Q&A.
+**On screen:** mirrors Slide 1's minimalism deliberately — the TINGOG wordmark, centered, reappearing on the same dark theme. As the presenter says the tagline, small text fades in beneath the wordmark, word-for-word what's being spoken: *"When a signal dies, your voice doesn't."* Holds through "Thank you," then out to Q&A.
+
+**Why the on-screen line changed:** it used to read *"Because your voice shouldn't be the next thing a disaster takes"* — a different wording from anything spoken, so the final beat landed as two similar-but-not-identical phrasings competing for the same moment. The tagline is now spoken aloud in Stage 11 and shown identically here; a line the audience hears and reads at the same instant is the one that survives the room.
 
 **Why bookend Slide 1:** the script's closing is an explicit callback (Stage 1 → Stage 3 → Stage 11's full-circle "voice" throughline); reusing Slide 1's exact visual treatment makes that callback register visually too, not just in the words — a judge who registered the plain wordmark at the very start sees it return at the very end, unchanged, while everything around it has been proven to work.

@@ -267,7 +267,10 @@ Total budget: **7 minutes**, demo included, Q&A excluded (no time limit there).
 
 **What it's doing:** full-circle callback to Stage 1's "heard... immediately" and Stage 3's "Tingog is Bisaya for voice" — the same closing technique Bant.ai used with "Bantay," reserved for the actual end rather than repeated early (Stage 3 explicitly declined to echo Stage 1 too soon, for exactly this reason — the distance was too short then; it's earned now). "Roads" is a new callback too, pointing back at Stage 2's specific bottleneck (a health worker physically going out to survey) rather than a generic disaster image.
 
-**Timing:** ~10–12 seconds.
+**Revision history:**
+1. Spoken tagline added after "This is Tingog" — *"When a signal dies, your voice doesn't."* Previously the tagline existed only as on-screen text in `DECK.md`'s Slide 11 (in a different wording), meaning the pitch's actual last idea was never said aloud. Now spoken and displayed as the same line, so the callback lands in both channels instead of splitting into two near-miss phrasings. "When a signal dies" also completes the voice throughline (Stage 1 "heard" → Stage 3 "Bisaya for voice" → here) against the one thing Stage 2 established a disaster takes away.
+
+**Timing:** ~13–15 seconds.
 
 **Script:**
 
@@ -275,4 +278,6 @@ Total budget: **7 minutes**, demo included, Q&A excluded (no time limit there).
 >
 > It doesn't get to take your voice too.
 >
-> This is Tingog. Thank you.
+> This is Tingog. When a signal dies, your voice doesn't.
+>
+> Thank you.
