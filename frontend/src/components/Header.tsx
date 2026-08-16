@@ -4,9 +4,11 @@ import { useTingog } from '../context/TingogContext';
 interface HeaderProps {
     toggleTheme: () => void;
     isDarkMode: boolean;
+    toggleMapStyle: () => void;
+    mapStyle: 'humanitarian' | 'minimal';
 }
 
-export function Header({ toggleTheme, isDarkMode }: HeaderProps) {
+export function Header({ toggleTheme, isDarkMode, toggleMapStyle, mapStyle }: HeaderProps) {
     const { simulateEarthquake, stopSimulation, isSimulating } = useTingog();
     const [timeString, setTimeString] = useState('');
 
@@ -42,7 +44,7 @@ export function Header({ toggleTheme, isDarkMode }: HeaderProps) {
             </div>
             
             {/* Right: Actions and Theme Toggle */}
-            <div className="flex justify-end items-center gap-3">
+            <div className="flex justify-end items-center gap-2 lg:gap-3">
                 {!isSimulating ? (
                     <button 
                         onClick={simulateEarthquake}
@@ -59,7 +61,16 @@ export function Header({ toggleTheme, isDarkMode }: HeaderProps) {
                     </button>
                 )}
                 <button 
+                    onClick={toggleMapStyle}
+                    title={mapStyle === 'humanitarian' ? 'Switch to Minimal Map' : 'Switch to Detailed Map'}
+                    className="flex h-7 w-7 items-center justify-center rounded-sm transition-colors duration-75 hover:bg-surface-container-highest">
+                    <span className="material-symbols-outlined text-on-surface-variant text-[17px]">
+                        {mapStyle === 'humanitarian' ? 'map' : 'layers'}
+                    </span>
+                </button>
+                <button 
                     onClick={toggleTheme}
+                    title="Toggle Dark/Light Mode"
                     className="flex h-7 w-7 items-center justify-center rounded-sm transition-colors duration-75 hover:bg-surface-container-highest">
                     <span className="material-symbols-outlined text-on-surface-variant text-[17px]">
                         {isDarkMode ? 'light_mode' : 'dark_mode'}

@@ -27,6 +27,8 @@ function Dashboard() {
         return true; 
     });
 
+    const [mapStyle, setMapStyle] = useState<'humanitarian' | 'minimal'>('humanitarian');
+
     useEffect(() => {
         const html = document.documentElement;
         if (isDarkMode) {
@@ -39,6 +41,8 @@ function Dashboard() {
     }, [isDarkMode]);
 
     const toggleTheme = () => setIsDarkMode(prev => !prev);
+    const toggleMapStyle = () => setMapStyle(prev => prev === 'humanitarian' ? 'minimal' : 'humanitarian');
+
     const openBriefing = () => {
         setSeenAnomalyCount(anomalies.length);
         setIsBriefingMinimized(false);
@@ -54,12 +58,12 @@ function Dashboard() {
 
     return (
         <div className="relative h-dvh w-full overflow-hidden bg-background text-on-surface font-body-md select-none">
-                <TacticalMap filter={mapFilter} />
+                <TacticalMap filter={mapFilter} isDarkMode={isDarkMode} mapStyle={mapStyle} />
 
                 {/* The command tools float over the geographic picture instead of competing with it for layout space. */}
                 <div className="pointer-events-none absolute inset-0 z-50">
                     <div className="pointer-events-auto absolute left-3 right-3 top-3 z-30 lg:left-4 lg:right-4 lg:top-4">
-                        <Header toggleTheme={toggleTheme} isDarkMode={isDarkMode} />
+                        <Header toggleTheme={toggleTheme} isDarkMode={isDarkMode} toggleMapStyle={toggleMapStyle} mapStyle={mapStyle} />
                     </div>
 
                     <div className="pointer-events-auto absolute left-3 right-3 top-[4.25rem] z-20 lg:left-1/2 lg:right-auto lg:top-[4.25rem] lg:w-[min(58rem,calc(100vw-43rem))] lg:-translate-x-1/2">

@@ -8,6 +8,8 @@ export type MapFilter = 'ALL' | 'CRITICAL' | 'NEEDS' | 'SILENT';
 
 interface TacticalMapProps {
     filter: MapFilter;
+    isDarkMode: boolean;
+    mapStyle: 'humanitarian' | 'minimal';
 }
 
 type MapWindow = Window & { resetMapView?: () => void };
@@ -30,7 +32,7 @@ function MapController() {
     return null;
 }
 
-export function TacticalMap({ filter }: TacticalMapProps) {
+export function TacticalMap({ filter, isDarkMode, mapStyle }: TacticalMapProps) {
     const { puroks, dispatchResponse } = useTingog();
 
     // Live time for relative timestamps
@@ -98,6 +100,29 @@ export function TacticalMap({ filter }: TacticalMapProps) {
         });
     };
 
+    const getMapUrl = () => {
+        if (mapStyle === 'humanitarian') {
+            return "https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png";
+        }
+        return isDarkMode 
+            ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+            : "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
+    };
+
+    const getMapAttribution = () => {
+        if (mapStyle === 'humanitarian') {
+            return '&copy; OpenStreetMap contributors, Tiles style by Humanitarian OpenStreetMap Team hosted by OpenStreetMap France';
+        }
+        return '&copy; <a href="https://carto.com/attributions">CARTO</a>';
+    };
+
+    const getMapClass = () => {
+        if (mapStyle === 'minimal') {
+            return isDarkMode ? "map-dark-minimal" : "map-light";
+        }
+        return isDarkMode ? "map-dark" : "map-light";
+    };
+
     return (
         <main className="absolute inset-0 z-0 isolate overflow-hidden bg-surface-container select-none cursor-default">
             <MapContainer 
@@ -106,10 +131,11 @@ export function TacticalMap({ filter }: TacticalMapProps) {
                 style={{ width: '100%', height: '100%' }}
                 zoomControl={false} // We will use our custom zoom controls if needed or none
             >
-                {/* Dark mode friendly map tiles (CartoDB Dark Matter) */}
                 <TileLayer
-                    url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                    key={`${mapStyle}-${isDarkMode ? 'dark' : 'light'}`}
+                    url={getMapUrl()}
+                    attribution={getMapAttribution()}
+                    className={getMapClass()}
                 />
                 <MapController />
 
