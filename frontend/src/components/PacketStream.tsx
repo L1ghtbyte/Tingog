@@ -87,7 +87,7 @@ export function PacketStream() {
                 <h2 className="text-headline-md font-headline-md text-primary tracking-tight uppercase">INCOMING REPORTS</h2>
             </div>
 
-            <div ref={scrollRef} className="flex-1 min-h-0 p-3 overflow-y-auto flex flex-col gap-3 bg-background">
+            <div ref={scrollRef} className="flex-1 min-h-0 p-2 overflow-y-auto flex flex-col gap-1.5 bg-background">
                 {recentEvents.length === 0 && <p className="text-xs text-on-surface-variant">No activity in the recent window.</p>}
                 {recentEvents.map((event) => {
                     const isDismissed = dismissedIds.has(event.id);
@@ -98,28 +98,28 @@ export function PacketStream() {
                     return (
                         <div
                             key={event.id}
-                            className={`bg-surface-container-high border p-3 flex flex-col gap-2 shrink-0 transition-colors ${cardBorderClass(event, isDismissed)}`}
+                            className={`bg-surface-container-high border p-2 flex flex-col gap-1 shrink-0 transition-colors ${cardBorderClass(event, isDismissed)}`}
                         >
-                            <div className="flex justify-between items-start border-b border-outline-variant pb-1 gap-2">
-                                <span className={`text-data-tabular font-data-tabular ${isDismissed ? "text-on-surface-variant" : "text-on-surface font-bold"}`}>
+                            <div className="flex justify-between items-start gap-2">
+                                <span className={`text-[11px] font-data-tabular leading-tight ${isDismissed ? "text-on-surface-variant" : "text-on-surface font-bold"}`}>
                                     {event.purok_name}
                                     <span className="ml-1 text-[9px] font-normal text-on-surface-variant">{event.device_id}</span>
                                 </span>
-                                <span className={`text-data-tabular font-data-tabular shrink-0 ${isCritical ? "text-red-400" : "text-on-surface-variant"}`}>
+                                <span className={`text-[9px] font-data-tabular shrink-0 leading-tight ${isCritical ? "text-red-400" : "text-on-surface-variant"}`}>
                                     {formatTime(event.received_at)}
                                 </span>
                             </div>
-                            <div className={`text-data-tabular font-data-tabular pl-2 border-l-2 ${labelColorClass(event, isDismissed)} ${isCritical ? "bg-red-500/10 font-bold p-1" : ""}`}>
+                            <div className={`text-[11px] font-data-tabular pl-1.5 border-l-2 leading-snug ${labelColorClass(event, isDismissed)} ${isCritical ? "bg-red-500/10 font-bold p-1" : ""}`}>
                                 {formatPressLabel(event)}
                             </div>
                             {!isDismissed && (
-                                <div className="flex gap-3 mt-1 px-1">
+                                <div className="flex gap-1.5">
                                     {purok && <DeliveryAction purok={purok} />}
                                     <button
                                         onClick={() => dismiss(event.id)}
-                                        className="flex-1 bg-transparent border border-primary text-primary py-1.5 hover:bg-primary/10 transition-colors transform skew-x-[12deg]"
+                                        className="flex-1 bg-transparent border border-primary text-primary py-1 hover:bg-primary/10 transition-colors transform skew-x-[12deg]"
                                     >
-                                        <span className="inline-block transform -skew-x-[12deg] text-label-caps font-label-caps font-bold">DISMISS</span>
+                                        <span className="inline-block transform -skew-x-[12deg] text-[9px] font-label-caps font-bold tracking-widest">DISMISS</span>
                                     </button>
                                 </div>
                             )}
