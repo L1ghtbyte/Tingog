@@ -41,7 +41,7 @@ function PurokRosterRow({ purok }: { purok: PurokOut }) {
             </div>
             <div className="flex items-center justify-between gap-2 text-[10px] text-on-surface-variant">
                 <span>{purok.active_needs.length > 0 ? purok.active_needs.join(", ") : "no active needs"}</span>
-                <span className="uppercase shrink-0">{purok.severity}</span>
+                <span className="uppercase shrink-0">severity: {purok.severity}</span>
             </div>
         </button>
     );

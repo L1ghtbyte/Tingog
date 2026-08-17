@@ -33,6 +33,17 @@ const STATUS_TEXT_COLOR: Record<PurokOut["status"], string> = {
     stable: "text-green-400",
 };
 
+// status and severity are two different fields answering two different questions
+// ("have we heard from them" vs. "how urgent is what they're reporting") — shown as
+// separate labeled lines below, each with its own color, instead of one "STATUS:"
+// line jamming both together as "STABLE / low", which read ambiguously as if "low"
+// were qualifying stability itself rather than naming a separate field.
+const SEVERITY_TEXT_COLOR: Record<PurokOut["severity"], string> = {
+    low: "text-green-400",
+    medium: "text-amber-400",
+    high: "text-red-400",
+};
+
 function createMarkerIcon(purok: PurokOut, isRecentlyPressed: boolean): L.DivIcon {
     const isCritical = purok.active_needs.includes("TABANG");
     // Uniform marker shape regardless of is_simulated — the simulated/real distinction
@@ -360,7 +371,11 @@ export function TacticalMap({ filter, onFilterChange, isDarkMode, mapStyle }: Ta
                                     <div className="text-data-tabular font-data-tabular space-y-1 mb-2">
                                         <div>
                                             <span className="text-on-surface-variant">STATUS:</span>{" "}
-                                            <span className={`font-bold ${STATUS_TEXT_COLOR[p.status]}`}>{p.status.toUpperCase()}</span> / {p.severity}
+                                            <span className={`font-bold ${STATUS_TEXT_COLOR[p.status]}`}>{p.status.toUpperCase()}</span>
+                                        </div>
+                                        <div>
+                                            <span className="text-on-surface-variant">SEVERITY:</span>{" "}
+                                            <span className={`font-bold ${SEVERITY_TEXT_COLOR[p.severity]}`}>{p.severity.toUpperCase()}</span>
                                         </div>
                                         <div>
                                             <span className="text-on-surface-variant">NEEDS:</span>{" "}
