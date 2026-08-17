@@ -68,16 +68,29 @@ function createMarkerIcon(purok: PurokOut, isRecentlyPressed: boolean): L.DivIco
 // A Leaflet `Tooltip` attached to a `Polyline` (direction="center") doesn't reliably
 // anchor to the line's actual midpoint — found live 2026-08-17, the label rendered
 // visibly displaced from the line it was meant to describe. Rendering the label as its
-// own point Marker at a manually-computed midpoint is fully deterministic instead:
-// iconSize [0,0] plus a CSS translate(-50%,-50%) on the inner div centers the
-// auto-sized label exactly on that point, regardless of its rendered text width.
+// own point Marker at a manually-computed midpoint is fully deterministic instead.
+// A first attempt used iconSize [0,0] with a CSS translate(-50%,-50%) to auto-center
+// arbitrary-width content — also found live to get clipped down to a single character,
+// Leaflet's own icon container doesn't reliably allow overflow past a 0x0 box. Using a
+// generously-sized FIXED box instead (wide enough for the longest realistic label) with
+// flexbox centering avoids relying on any overflow behavior at all.
+const CLUSTER_LABEL_BOX_WIDTH = 320;
+const CLUSTER_LABEL_BOX_HEIGHT = 28;
+
 function createClusterLabelIcon(cluster: { need_type: string; puroks: string[]; confidence: number }): L.DivIcon {
     const html = `
-        <div style="transform: translate(-50%, -50%);" class="whitespace-nowrap rounded-sm bg-amber-500 px-2 py-1 text-[11px] font-bold text-black shadow-lg">
-            ${cluster.need_type} cluster — ${cluster.puroks.length} puroks, ${cluster.confidence}% confidence
+        <div class="flex items-center justify-center" style="width: ${CLUSTER_LABEL_BOX_WIDTH}px; height: ${CLUSTER_LABEL_BOX_HEIGHT}px;">
+            <div class="whitespace-nowrap rounded-sm bg-amber-500 px-2 py-1 text-[11px] font-bold text-black shadow-lg">
+                ${cluster.need_type} cluster — ${cluster.puroks.length} puroks, ${cluster.confidence}% confidence
+            </div>
         </div>
     `;
-    return L.divIcon({ html, className: "bg-transparent border-0", iconSize: [0, 0] });
+    return L.divIcon({
+        html,
+        className: "bg-transparent border-0",
+        iconSize: [CLUSTER_LABEL_BOX_WIDTH, CLUSTER_LABEL_BOX_HEIGHT],
+        iconAnchor: [CLUSTER_LABEL_BOX_WIDTH / 2, CLUSTER_LABEL_BOX_HEIGHT / 2],
+    });
 }
 
 function clusterMidpoint(points: [number, number][]): [number, number] {
