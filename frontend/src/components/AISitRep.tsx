@@ -484,6 +484,15 @@ export function AISitRep() {
             );
             if (!isStep) {
                 if ("conversation_id" in event && event.conversation_id) setConversationId(event.conversation_id);
+                // The trace was expanded to show the live process while it was the only
+                // content on screen — once a real answer exists, it steps back into a
+                // collapsed disclosure automatically, same as every other completed turn,
+                // instead of staying pinned open just because it was the most recent ask.
+                setExpandedTurnIds((prev) => {
+                    const next = new Set(prev);
+                    next.delete(turnId);
+                    return next;
+                });
                 es.close();
             }
         };
