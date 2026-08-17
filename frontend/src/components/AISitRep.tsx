@@ -305,6 +305,29 @@ function ChatTurnBlock({
                 </div>
             )}
 
+            {/* Once there's a real answer, the process trace is a small, secondary
+                disclosure ahead of it — it explains HOW, the narrative right below is
+                WHAT matters, so it stays a plain unboxed line rather than competing for
+                attention the way the streaming version's bordered box does. */}
+            {!turn.isStreaming && turn.steps.length > 0 && (
+                <div>
+                    <button
+                        onClick={onToggleExpand}
+                        className="flex items-center gap-1 text-[10px] text-on-surface-variant/70 hover:text-on-surface-variant"
+                    >
+                        <span className="material-symbols-outlined text-[12px]">{isExpanded ? "expand_less" : "chevron_right"}</span>
+                        {pluralize(toolCallCount, "tool call")}
+                    </button>
+                    {isExpanded && (
+                        <div className="mt-1.5 mb-1.5 pl-2 border-l border-outline-variant/40">
+                            {displaySteps.map((step, i) => (
+                                <TimelineRow key={step.key} step={step} isLast={i === displaySteps.length - 1} isStreaming={false} />
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
+
             {turn.terminalEvent?.type === "clarifying" && (
                 <div className="text-xs text-amber-400 border-l-2 border-amber-500 pl-2">{turn.terminalEvent.clarifying_question}</div>
             )}
@@ -335,28 +358,6 @@ function ChatTurnBlock({
             )}
             {turn.terminalEvent?.type === "error" && (
                 <div className="text-[10px] text-red-400">{turn.terminalEvent.message}</div>
-            )}
-
-            {/* Once there's a real answer, the process trace steps back into a small,
-                secondary disclosure below it — it explains HOW, the answer above is WHAT
-                matters, and shouldn't have to compete with a bordered box for attention. */}
-            {!turn.isStreaming && turn.steps.length > 0 && (
-                <div>
-                    <button
-                        onClick={onToggleExpand}
-                        className="flex items-center gap-1 text-[10px] text-on-surface-variant/70 hover:text-on-surface-variant"
-                    >
-                        <span className="material-symbols-outlined text-[12px]">{isExpanded ? "expand_less" : "chevron_right"}</span>
-                        {pluralize(toolCallCount, "tool call")}
-                    </button>
-                    {isExpanded && (
-                        <div className="mt-1.5 pl-2 border-l border-outline-variant/40">
-                            {displaySteps.map((step, i) => (
-                                <TimelineRow key={step.key} step={step} isLast={i === displaySteps.length - 1} isStreaming={false} />
-                            ))}
-                        </div>
-                    )}
-                </div>
             )}
         </div>
     );
