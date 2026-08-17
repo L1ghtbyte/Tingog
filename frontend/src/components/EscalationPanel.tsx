@@ -28,7 +28,7 @@ export function EscalationPanel() {
                         activeTab === "log" ? "text-primary border-primary" : "text-on-surface-variant border-transparent hover:text-on-surface"
                     }`}
                 >
-                    LOG
+                    ALERTS
                 </button>
                 <button
                     type="button"
