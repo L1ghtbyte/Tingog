@@ -189,6 +189,15 @@ For the second set, every answer is either a real, defensible position or an hon
 
 Worth adding if pressed further: this was hardened through genuine live testing, not just designed on paper — real edge cases (a claim citing a number under an unexpected field name, a model rounding a precise figure to a whole number) were found and fixed specifically because the checker kept catching them, which is itself evidence it works, not just a claim that it should.
 
+**Judge: "How can you say your system is agentic — aren't you just using it as a buzzword?"**
+
+- **Point:** No — "agentic" describes one specific, narrow part of our system, and we can point to exactly the code that makes it true.
+- **Reason:** The real test of "agentic" is whether the model itself decides which actions to take and in what order, versus a developer hardcoding a fixed sequence. Our on-demand briefing layer does the former: given a question, the model chooses which of our seven read-only tools to call, how many times, and in what order, up to a bounded six iterations, and decides for itself when it has enough information to answer.
+- **Example:** Ask "what's the current situation?" versus "is Purok 4 okay?" and the tool-call trace genuinely differs — different tools, different counts, different order — because the model is making that call live, not because we wrote two separate code paths for two different questions. We can show this literally, live, in the streaming step trace as it happens.
+- **Point (restated):** And we're precise about where the word stops applying, which is itself evidence we're not overusing it — severity scoring, clustering, and escalation are all explicitly deterministic, no AI involved at all (see "why is severity scoring deterministic" above). If we were reaching for "agentic" as a buzzword, we'd be tempted to slap it on those too. We don't.
+
+Worth adding if pressed further: this isn't the open-ended, self-directed kind of "agentic" either — no internet access, no code execution, no ability to set its own goals, a hard cap of six tool-call iterations, and every output still passes through the same deterministic Figure Checker before a coordinator ever sees it. We're claiming a bounded, tool-using agent, not an autonomous one — and we'd rather defend that precise, smaller claim than an impressive-sounding bigger one that doesn't hold up.
+
 ### Software architecture
 
 **Judge: "Why isn't this deployed somewhere public — why are we looking at localhost?"**
