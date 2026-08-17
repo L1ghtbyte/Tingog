@@ -64,6 +64,17 @@ guess would likely be wrong, not just because a question is broad. A general req
 like "what's the situation" is NOT ambiguous — that means the general briefing."""
 
 
+DEFAULT_GENERAL_BRIEFING_TEXT = (
+    "Write a briefing covering what a coordinator who's been away from the "
+    "dashboard needs to know right now."
+)
+DEFAULT_CONTINUATION_TEXT = "Continue with a general update."
+# Every build_retry_messages() correction starts with this — used by
+# reconstruct_conversation_turns() to recognize and skip these synthetic "user" turns
+# when replaying a saved conversation for display (a coordinator never typed them).
+RETRY_CORRECTION_PREFIX = "IMPORTANT — your previous attempt"
+
+
 def _system_prompt(question: str | None) -> str:
     # Clarifying questions are only offered when a real coordinator is actually there
     # to answer one — never for the default general briefing (question=None), which
@@ -74,10 +85,7 @@ def _system_prompt(question: str | None) -> str:
 
 
 def build_initial_messages(question: str | None = None) -> list[dict]:
-    user_turn = question.strip() if question and question.strip() else (
-        "Write a briefing covering what a coordinator who's been away from the "
-        "dashboard needs to know right now."
-    )
+    user_turn = question.strip() if question and question.strip() else DEFAULT_GENERAL_BRIEFING_TEXT
     return [
         {"role": "system", "content": _system_prompt(question)},
         {"role": "user", "content": user_turn},

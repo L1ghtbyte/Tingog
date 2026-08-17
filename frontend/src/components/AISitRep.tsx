@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-import { getBriefingStreamUrl, getLastBriefing } from "../api/client";
+import { getBriefingStreamUrl, getLastBriefing, getLastConversation } from "../api/client";
 import type { PurokOut, StreamEvent, TriggerSource } from "../api/types";
 import { useTingog } from "../context/TingogContext";
 
@@ -355,36 +355,61 @@ export function AISitRep() {
     const eventSourceRef = useRef<EventSource | null>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
 
-    // Passive load on mount — the last saved briefing, no agent run, no step trace (it
-    // never had one — never synthesize fake steps for it). Shown as the first entry in
-    // the thread so a fresh page load isn't empty, without forcing an LLM-backed run.
+    // Passive load on mount — replays the coordinator's WHOLE real conversation, not
+    // just the single last saved narrative. A back-and-forth is real, persisted data
+    // (backend save_conversation) — without this, a page reload or server restart wiped
+    // every past question/answer from view even though the backend never lost it. No
+    // step trace on replayed turns (none was ever persisted — never synthesize fake
+    // steps for it), and conversationId is restored so a follow-up question continues
+    // the SAME thread instead of silently starting a disconnected new one.
     useEffect(() => {
-        getLastBriefing()
-            .then((last) => {
-                if (!last) return;
-                setTurns([
-                    {
-                        id: "passive",
-                        question: null,
-                        createdAt: last.created_at,
-                        triggerSource: last.trigger_source,
+        getLastConversation()
+            .then((history) => {
+                if (!history || history.turns.length === 0) return false;
+                setConversationId(history.conversation_id);
+                setTurns(
+                    history.turns.map((turn, i) => ({
+                        id: `history-${i}`,
+                        question: turn.question,
                         steps: [],
-                        terminalEvent: {
-                            type: "final",
-                            mode: "briefed",
-                            claims: last.claims,
-                            narrative: last.narrative,
-                            tool_results: {},
-                            trigger_source: last.trigger_source,
-                            conversation_id: "",
-                        },
+                        terminalEvent:
+                            turn.mode === "clarifying"
+                                ? { type: "clarifying", clarifying_question: turn.clarifying_question ?? "", conversation_id: history.conversation_id }
+                                : {
+                                      type: "final", mode: "briefed", claims: turn.claims ?? undefined, narrative: turn.narrative ?? undefined,
+                                      tool_results: {}, trigger_source: "coordinator_query", conversation_id: history.conversation_id,
+                                  },
                         isStreaming: false,
-                    },
-                ]);
+                    }))
+                );
+                return true;
+            })
+            .then((loadedConversation) => {
+                if (loadedConversation) return;
+                // No real conversation yet (fresh install, or only scheduled runs exist —
+                // those never create a ConversationRecord) — fall back to the single last
+                // saved narrative so a fresh page load still isn't empty.
+                getLastBriefing().then((last) => {
+                    if (!last) return;
+                    setTurns([
+                        {
+                            id: "passive",
+                            question: null,
+                            createdAt: last.created_at,
+                            triggerSource: last.trigger_source,
+                            steps: [],
+                            terminalEvent: {
+                                type: "final", mode: "briefed", claims: last.claims, narrative: last.narrative,
+                                tool_results: {}, trigger_source: last.trigger_source, conversation_id: "",
+                            },
+                            isStreaming: false,
+                        },
+                    ]);
+                });
             })
             .catch(() => {
-                // No saved briefing yet, or backend briefly unreachable at mount —
-                // the ASK button still works either way, so fail silently here.
+                // Backend briefly unreachable at mount — the ASK button still works once
+                // it's up, so fail silently here rather than blocking the panel.
             });
     }, []);
 

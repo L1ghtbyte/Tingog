@@ -124,6 +124,22 @@ export type StreamEvent =
       }
     | { type: "error"; message: string };
 
+// One replayed turn from GET /api/briefing/conversation/last. Mirrors
+// backend/app/schemas.py's ConversationTurnOut exactly.
+export interface ConversationTurnOut {
+    question: string | null;
+    mode: "briefed" | "clarifying";
+    narrative: string | null;
+    claims: Record<string, unknown>[] | null;
+    clarifying_question: string | null;
+}
+
+export interface ConversationHistoryOut {
+    conversation_id: string;
+    turns: ConversationTurnOut[];
+    updated_at: string;
+}
+
 // One event from GET /api/diagnostics/briefing-reliability (SSE). Mirrors
 // backend/app/routers/diagnostics.py's _reliability_stream() event shapes exactly.
 export type ReliabilityRunMode = "briefed" | "raw" | "clarifying" | "crashed" | "unknown";

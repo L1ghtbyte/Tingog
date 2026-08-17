@@ -1,6 +1,7 @@
 import type {
     BriefingResponse,
     ClusterOut,
+    ConversationHistoryOut,
     DeliveryCreateIn,
     EscalationOut,
     LastBriefingOut,
@@ -43,6 +44,11 @@ export const getBriefing = (question?: string, conversationId?: string) => {
 
 // Passive read — no agent run, no LLM call. Null if nothing's been generated yet.
 export const getLastBriefing = () => apiGet<LastBriefingOut | null>("/api/briefing/last");
+
+// The full replayable back-and-forth for the most recently active conversation — lets
+// the dashboard show a coordinator's whole chat again after a reload/restart, not just
+// the single last saved narrative. Null if no conversation has been saved yet.
+export const getLastConversation = () => apiGet<ConversationHistoryOut | null>("/api/briefing/conversation/last");
 
 // Not run through apiGet — EventSource wants a plain URL, not a fetch call, and it only
 // supports GET, so this shares getBriefing's query-building but returns the URL itself.

@@ -114,6 +114,29 @@ class LastBriefingOut(BaseModel):
     created_at: UTCDatetime
 
 
+class ConversationTurnOut(BaseModel):
+    """One replayed turn from a saved ConversationRecord's raw message history —
+    reconstructed (see agent/briefing_agent.py's reconstruct_conversation_turns) rather
+    than stored in this shape directly, since the underlying storage is the raw
+    OpenAI-format message list the agent actually reasons over."""
+
+    question: str | None
+    mode: Literal["briefed", "clarifying"]
+    narrative: str | None = None
+    claims: list[dict[str, Any]] | None = None
+    clarifying_question: str | None = None
+
+
+class ConversationHistoryOut(BaseModel):
+    """The full replayable back-and-forth for the most recently active conversation —
+    lets the dashboard show a coordinator's whole chat again after a page reload or
+    server restart, instead of only the single last saved narrative."""
+
+    conversation_id: str
+    turns: list[ConversationTurnOut]
+    updated_at: UTCDatetime
+
+
 class ClusterOut(BaseModel):
     """Dashboard-facing exposure of clustering.get_active_clusters() — previously only
     available to the Briefing Agent's internal tools, needed as a real public endpoint

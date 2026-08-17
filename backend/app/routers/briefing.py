@@ -2,9 +2,9 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app import crud
-from app.agent.briefing_agent import run_briefing
+from app.agent.briefing_agent import reconstruct_conversation_turns, run_briefing
 from app.routers.puroks import get_db
-from app.schemas import BriefingResponse, LastBriefingOut
+from app.schemas import BriefingResponse, ConversationHistoryOut, LastBriefingOut
 
 router = APIRouter(prefix="/api", tags=["briefing"])
 
@@ -16,6 +16,22 @@ async def get_last_briefing(db: Session = Depends(get_db)):
     generated yet this session. For a dashboard to show *something* on load without
     forcing a fresh (slower, LLM-backed) request the moment the page opens."""
     return crud.get_latest_briefing_record(db)
+
+
+@router.get("/briefing/conversation/last", response_model=ConversationHistoryOut | None)
+async def get_last_conversation(db: Session = Depends(get_db)):
+    """The full replayable back-and-forth for the most recently active conversation —
+    lets the dashboard chat panel show a coordinator's whole prior exchange again after
+    a page reload or server restart, not just the single last saved narrative. Returns
+    null if no conversation has been saved yet (matches get_last_briefing's shape)."""
+    record = crud.get_latest_conversation(db)
+    if record is None:
+        return None
+    return ConversationHistoryOut(
+        conversation_id=record.id,
+        turns=reconstruct_conversation_turns(record.messages),
+        updated_at=record.updated_at,
+    )
 
 
 @router.get("/briefing", response_model=BriefingResponse)

@@ -191,6 +191,10 @@ def get_conversation(db: Session, conversation_id: str) -> ConversationRecord | 
     return db.query(ConversationRecord).filter(ConversationRecord.id == conversation_id).first()
 
 
+def get_latest_conversation(db: Session) -> ConversationRecord | None:
+    return db.query(ConversationRecord).order_by(ConversationRecord.updated_at.desc()).first()
+
+
 def save_conversation(db: Session, conversation_id: str, messages: list[dict]) -> ConversationRecord:
     record = get_conversation(db, conversation_id)
     if record is None:

@@ -30,7 +30,15 @@ from app import config
 from app.agent import tools as agent_tools
 from app.agent.figure_checker import CheckResult, check
 from app.agent.llm_client import AllModelsFailedError, call_llm_with_fallback
-from app.agent.prompts import build_continued_messages, build_initial_messages, build_retry_messages, parse_final_answer
+from app.agent.prompts import (
+    DEFAULT_CONTINUATION_TEXT,
+    DEFAULT_GENERAL_BRIEFING_TEXT,
+    RETRY_CORRECTION_PREFIX,
+    build_continued_messages,
+    build_initial_messages,
+    build_retry_messages,
+    parse_final_answer,
+)
 from app.crud import get_conversation, save_briefing_record, save_conversation
 from app.database import SessionLocal
 from app.models import Purok
@@ -168,6 +176,44 @@ async def _full_raw_dump(db: Session) -> dict:
     return tool_results
 
 
+def reconstruct_conversation_turns(messages: list[dict]) -> list[dict]:
+    """Replays a saved ConversationRecord's raw OpenAI-format message list into the same
+    turn shape the dashboard renders live — a coordinator's whole back-and-forth is real,
+    persisted data (save_conversation), not something that only exists in one browser
+    tab's memory until it's refreshed away. Used by GET /api/briefing/conversation/last
+    so the chat panel can show the full conversation again after a reload or restart,
+    not just the single last saved narrative.
+
+    Only user/assistant turns matter for display — intermediate tool-call/tool-result
+    messages are working state a past reload doesn't need to replay (unlike a live
+    stream, which shows them as they happen). Synthetic user turns (the default
+    general-briefing/continuation text, and a retry's correction message) are recognized
+    and excluded — a coordinator never typed those themselves."""
+    turns: list[dict] = []
+    pending_question: str | None = None
+    for message in messages:
+        role = message.get("role")
+        if role == "user":
+            content = (message.get("content") or "").strip()
+            if content.startswith(RETRY_CORRECTION_PREFIX):
+                continue
+            pending_question = None if content in (DEFAULT_GENERAL_BRIEFING_TEXT, DEFAULT_CONTINUATION_TEXT) else content
+        elif role == "assistant" and not message.get("tool_calls"):
+            parsed = parse_final_answer(message.get("content"))
+            if "clarifying_question" in parsed:
+                turns.append({
+                    "question": pending_question, "mode": "clarifying",
+                    "narrative": None, "claims": None, "clarifying_question": parsed["clarifying_question"],
+                })
+            else:
+                turns.append({
+                    "question": pending_question, "mode": "briefed",
+                    "narrative": parsed.get("narrative"), "claims": parsed.get("claims"), "clarifying_question": None,
+                })
+            pending_question = None
+    return turns
+
+
 async def run_briefing(
     db: Session,
     question: str | None = None,
@@ -185,7 +231,7 @@ async def run_briefing(
     try:
         existing = get_conversation(db, conversation_id) if conversation_id else None
         if existing is not None and existing.messages:
-            messages = build_continued_messages(existing.messages, question or "Continue with a general update.")
+            messages = build_continued_messages(existing.messages, question or DEFAULT_CONTINUATION_TEXT)
         else:
             messages = build_initial_messages(question)
         conversation_id = conversation_id or _new_conversation_id()
@@ -256,7 +302,7 @@ async def run_briefing_stream(
     try:
         existing = get_conversation(db, conversation_id) if conversation_id else None
         if existing is not None and existing.messages:
-            messages = build_continued_messages(existing.messages, question or "Continue with a general update.")
+            messages = build_continued_messages(existing.messages, question or DEFAULT_CONTINUATION_TEXT)
         else:
             messages = build_initial_messages(question)
         conversation_id = conversation_id or _new_conversation_id()
