@@ -178,6 +178,17 @@ For the second set, every answer is either a real, defensible position or an hon
 - **Example:** But we haven't designed anything about the actual repair or replacement process itself.
 - **Message:** Worth connecting this back to the hardware-custody question if it comes up as the natural follow-up.
 
+### AI trust & accuracy
+
+**Judge: "How do you ensure your AI outputs factual, not false, information — how do you prevent AI hallucination?"**
+
+- **Point:** We don't trust the model to be accurate — we mechanically verify it, with real deterministic code, before anything reaches a coordinator.
+- **Reason:** An LLM asked to summarize data can still state a wrong number with total confidence. The common fix — having a second AI call "check" the first — doesn't actually solve this: a system that hallucinates can just as easily hallucinate agreement with its own mistake.
+- **Example:** Every specific claim the model makes must cite exactly which real tool result it came from. Our Figure Checker — plain Python, not another AI call — walks that citation back to the actual data and confirms it matches, and separately confirms every number in the written narrative traces back to a cited claim, not just one that sounds plausible. If a claim doesn't check out, we retry once, telling the model precisely what was wrong. If it still doesn't check out, we show the coordinator the real underlying data directly — no AI-generated text at all — rather than ever displaying an unverified claim.
+- **Point (restated):** This isn't a policy we're asking the model to follow — it's arithmetic checking its work, so the system is structurally incapable of quietly showing something false.
+
+Worth adding if pressed further: this was hardened through genuine live testing, not just designed on paper — real edge cases (a claim citing a number under an unexpected field name, a model rounding a precise figure to a whole number) were found and fixed specifically because the checker kept catching them, which is itself evidence it works, not just a claim that it should.
+
 ### Software architecture
 
 **Judge: "Why isn't this deployed somewhere public — why are we looking at localhost?"**
