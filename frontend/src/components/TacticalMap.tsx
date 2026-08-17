@@ -55,18 +55,19 @@ function createMarkerIcon(purok: PurokOut, isRecentlyPressed: boolean): L.DivIco
     // (both the text badge and this shape split) was deliberately removed from the UI;
     // is_simulated stays real in the DB/API, just no longer surfaced visually here.
     //
-    // Three independent rings, deliberately different in size/color so they're never
-    // confused: red means "TABANG is currently an active need," amber (inner) means
-    // "some other need is currently open" — both persist as long as that's true. The
-    // larger, lighter amber ring means "a new event just landed on this purok" (fades
-    // after a few seconds) — this is the guaranteed, filter- and popup-independent
+    // Two rings, not three visually — "open need" and "just happened" share the exact
+    // same larger sizing/weight (found live 2026-08-17: an earlier pass gave the open-
+    // need ring the smaller TABANG sizing instead, so it visibly shrank the moment the
+    // initial flash faded, instead of continuing to look like the same pulse). Red still
+    // means "TABANG is currently an active need"; the shared amber styling means either
+    // "some other need is currently open" (persists) or "a new event just landed here"
+    // (fades after a few seconds) — this is the guaranteed, filter- and popup-independent
     // signal that something happened here, requested directly: relying solely on the
     // popup opening wasn't a reliable enough "this is active".
     const html = `
         <div class="relative w-4 h-4 rounded-full border-2 ${STATUS_COLOR[purok.status]}">
             ${isCritical ? '<div class="absolute inset-0 rounded-full border-2 border-red-500 animate-ping opacity-75"></div>' : ""}
-            ${hasOtherOpenNeed ? '<div class="absolute inset-0 rounded-full border-2 border-amber-400 animate-ping opacity-75"></div>' : ""}
-            ${isRecentlyPressed ? '<div class="absolute -inset-2.5 rounded-full border-[3px] border-amber-300 animate-ping opacity-90"></div>' : ""}
+            ${hasOtherOpenNeed || isRecentlyPressed ? '<div class="absolute -inset-2.5 rounded-full border-[3px] border-amber-300 animate-ping opacity-90"></div>' : ""}
         </div>
     `;
     return L.divIcon({ html, className: "tingog-marker-icon", iconSize: [16, 16], iconAnchor: [8, 8] });
