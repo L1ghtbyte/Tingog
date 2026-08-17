@@ -6,7 +6,6 @@ import { EscalationPanel } from './components/EscalationPanel';
 import { TacticalMap, type MapFilter } from './components/TacticalMap';
 import { PacketStream } from './components/PacketStream';
 import { ReliabilityPanel } from './components/ReliabilityPanel';
-import { ClusterBanner } from './components/ClusterBanner';
 
 import { TingogProvider, useTingog } from './context/TingogContext';
 
@@ -83,28 +82,23 @@ function Dashboard() {
                     <KPIStrip filter={mapFilter} onFilterChange={setMapFilter} />
                 </div>
 
-                {/* Stacked fixed-position banners, both read-only status surfaces above
-                    the map — neither depends on map pan/zoom to stay visible. */}
-                {!isFocusMode && (
-                    <div className="absolute left-1/2 top-[7.25rem] z-30 -translate-x-1/2 lg:top-[7rem] flex flex-col items-center gap-1.5">
-                        {/* Real, checkable disclosure that a demo sequence is injecting
-                            is_simulated data through the live pipeline — never silent. Per-item
-                            [SIMULATED] badges were removed from the map/packet stream UI (is_simulated
-                            stays real in the DB/API; disclosed verbally when presenting instead — see
-                            ARCHITECTURE.md §8), but this session-level banner is a separate mechanism
-                            and stays. */}
-                        {(isSimulating || earthquakeError) && (
-                            <div
-                                className={`pointer-events-none rounded-sm border px-3 py-1 text-[10px] font-bold tracking-widest shadow-lg backdrop-blur-md ${
-                                    isSimulating
-                                        ? 'border-red-500/50 bg-red-500/10 text-red-400'
-                                        : 'border-amber-500/50 bg-amber-500/10 text-amber-400'
-                                }`}
-                            >
-                                {isSimulating ? 'DEMO SEQUENCE RUNNING — puroks are receiving real, simulated presses' : earthquakeError}
-                            </div>
-                        )}
-                        <ClusterBanner />
+                {/* Real, checkable disclosure that a demo sequence is injecting
+                    is_simulated data through the live pipeline — never silent. Per-item
+                    [SIMULATED] badges were removed from the map/packet stream UI (is_simulated
+                    stays real in the DB/API; disclosed verbally when presenting instead — see
+                    ARCHITECTURE.md §8), but this session-level banner is a separate mechanism
+                    and stays. */}
+                {!isFocusMode && (isSimulating || earthquakeError) && (
+                    <div className="pointer-events-none absolute left-1/2 top-[7.25rem] z-30 -translate-x-1/2 lg:top-[7rem]">
+                        <div
+                            className={`rounded-sm border px-3 py-1 text-[10px] font-bold tracking-widest shadow-lg backdrop-blur-md ${
+                                isSimulating
+                                    ? 'border-red-500/50 bg-red-500/10 text-red-400'
+                                    : 'border-amber-500/50 bg-amber-500/10 text-amber-400'
+                            }`}
+                        >
+                            {isSimulating ? 'DEMO SEQUENCE RUNNING — puroks are receiving real, simulated presses' : earthquakeError}
+                        </div>
                     </div>
                 )}
 

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { MapContainer, Marker, Polyline, Popup, TileLayer, useMap } from "react-leaflet";
+import { MapContainer, Marker, Polyline, Popup, TileLayer, Tooltip, useMap } from "react-leaflet";
 
 import { getPurokDetail } from "../api/client";
 import type { PurokDetailOut, PurokOut } from "../api/types";
@@ -333,12 +333,15 @@ export function TacticalMap({ filter, onFilterChange, isDarkMode, mapStyle }: Ta
                 <FocusController puroks={puroks} markerRefs={markerRefs} filter={filter} onFilterChange={onFilterChange} />
                 <ResetViewBinding puroks={puroks} />
 
-                {/* The line itself is what the script has the presenter point to — the
-                    readable "TUBIG cluster — 3 puroks, 55% confidence" text now lives
-                    solely in ClusterBanner.tsx (fixed position, never lost to map pan/
-                    zoom), so this no longer duplicates it in a Leaflet tooltip too. */}
+                {/* Label stays pinned to the cluster's actual map position (not a fixed
+                    screen position) — moves/pans with the map, same as everything else
+                    spatial here, just bigger and bolder than before for visibility. */}
                 {clusterLines.map(({ cluster, points }) => (
-                    <Polyline key={cluster.cluster_id} positions={points} pathOptions={{ color: "#F59E0B", weight: 4, dashArray: "8 6", opacity: 0.9 }} />
+                    <Polyline key={cluster.cluster_id} positions={points} pathOptions={{ color: "#F59E0B", weight: 4, dashArray: "8 6", opacity: 0.9 }}>
+                        <Tooltip permanent direction="center" className="!bg-amber-500 !text-black !border-0 !text-[11px] !font-bold !px-2 !py-1">
+                            {cluster.need_type} cluster — {cluster.puroks.length} puroks, {cluster.confidence}% confidence
+                        </Tooltip>
+                    </Polyline>
                 ))}
 
                 {filteredPuroks.map((p) => {
