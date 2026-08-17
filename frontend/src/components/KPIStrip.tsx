@@ -33,18 +33,16 @@ export function KPIStrip({ filter, onFilterChange }: KPIStripProps) {
     // client-side re-derivation, and no hours_since_heartbeat field to derive from anyway.
     const unaccountedCount = puroks.filter((p) => p.status === 'unknown').length;
     // "All clear" — a real stable status with nothing currently reported, not a
-    // client-side reconstruction of the LUWAS press itself. Displayed as "OK" —
-    // see ARCHITECTURE.md §4 for why (LUWAS was found to mean "to go out/escape",
-    // not "safe"; the wire code stays LUWAS to match real hardware, only the
-    // display label changed).
-    const okCount = puroks.filter((p) => p.active_needs.length === 0 && p.status === 'stable').length;
+    // client-side reconstruction of the LUWAS press itself. Displayed as "LUWAS"
+    // (reverted 2026-08-17 — the earlier "OK" relabeling was itself reverted).
+    const luwasCount = puroks.filter((p) => p.active_needs.length === 0 && p.status === 'stable').length;
 
     const metrics = [
         { filter: 'ALL' as const, label: 'TOTAL PUROKS', value: totalPuroksCount, tone: 'text-on-surface', border: 'border-outline-variant' },
         { filter: 'CRITICAL' as const, label: 'CRITICAL', value: criticalCount, tone: 'text-red-400', border: 'border-red-500/50', pulse: criticalCount > 0 },
         { filter: 'NEEDS' as const, label: 'NEEDS', value: resourceNeeds, breakdown: needsBreakdown, tone: 'text-amber-400', border: 'border-amber-500/50' },
         { filter: 'SILENT' as const, label: 'UNACCOUNTED', value: unaccountedCount, tone: 'text-[#64748B]', border: 'border-[#64748B]/50' },
-        { filter: 'OK' as const, label: 'OK', value: okCount, tone: 'text-green-400', border: 'border-green-500/50' },
+        { filter: 'LUWAS' as const, label: 'LUWAS', value: luwasCount, tone: 'text-green-400', border: 'border-green-500/50' },
     ];
 
     return (

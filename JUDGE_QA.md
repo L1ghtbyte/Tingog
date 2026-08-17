@@ -178,6 +178,17 @@ For the second set, every answer is either a real, defensible position or an hon
 - **Example:** But we haven't designed anything about the actual repair or replacement process itself.
 - **Message:** Worth connecting this back to the hardware-custody question if it comes up as the natural follow-up.
 
+### Software architecture
+
+**Judge: "Why isn't this deployed somewhere public — why are we looking at localhost?"**
+
+- **Point:** The backend stays local deliberately — it's reading a real ESP32 gateway over a physical USB serial port on this laptop, and that's not something a cloud server can have.
+- **Reason:** Deploying the backend elsewhere would sever it from the actual hardware; a cloud-hosted version could only ever show simulated presses, never the real pipeline we're demonstrating tonight.
+- **Example:** The frontend alone is trivially deployable — a static build, live on Vercel or Netlify in minutes. It's specifically the backend's real-time serial connection to physical buttons that ties it to this machine.
+- **Point (restated):** We chose to keep the demo tied to something real over something that merely looked more finished — deployment itself isn't the hard problem here; real barangay-scale hardware rollout is (§10).
+
+Worth knowing if pressed further: the backend could be exposed through a tunnel (e.g. ngrok) to get a real public URL while keeping the real hardware connection intact — a fast option we simply didn't need tonight, not a gap we couldn't close.
+
 ### Ethics & equity
 
 **Judge: "Does instrumenting some puroks and not others create a two-tier response — do instrumented communities get helped faster while others fall further behind?"**

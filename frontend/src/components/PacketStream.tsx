@@ -8,11 +8,9 @@ function pressedButtons(event: RecentEventOut): string[] {
     return event.button === "COMBO" ? event.combo_buttons ?? [] : [event.button];
 }
 
-// Wire protocol always sends "LUWAS" (matches the real hardware/firmware) — only
-// the text shown to a viewer changed to "OK", after finding LUWAS doesn't actually
-// translate to "safe" (closer to "to go out/escape"). See ARCHITECTURE.md §4.
 // English glosses on the need buttons are for local relevance — judges shouldn't
-// need to already know Bisaya to read this panel.
+// need to already know Bisaya to read this panel. LUWAS is displayed as-is (reverted
+// 2026-08-17) — no gloss, since the earlier "OK" relabeling was itself reverted.
 const NEED_TRANSLATIONS: Record<string, string> = {
     TABANG: "Help",
     TUBIG: "Water",
@@ -21,7 +19,6 @@ const NEED_TRANSLATIONS: Record<string, string> = {
 };
 
 function displayButtonName(button: string): string {
-    if (button === "LUWAS") return "OK";
     const translation = NEED_TRANSLATIONS[button];
     return translation ? `${button} (${translation})` : button;
 }

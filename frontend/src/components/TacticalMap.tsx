@@ -8,11 +8,7 @@ import type { PurokDetailOut, PurokOut } from "../api/types";
 import { useTingog } from "../context/TingogContext";
 import { DeliveryAction } from "./DeliveryAction";
 
-// "OK" is the UI-facing name for the fifth button. The wire protocol and backend
-// still use "LUWAS" (matches the real hardware silkscreen/firmware) — this filter
-// key is purely a frontend UI concept with no backend coupling, so it's safe to
-// rename independently. See ARCHITECTURE.md §4 for why the display name changed.
-export type MapFilter = "ALL" | "CRITICAL" | "NEEDS" | "SILENT" | "OK";
+export type MapFilter = "ALL" | "CRITICAL" | "NEEDS" | "SILENT" | "LUWAS";
 
 interface TacticalMapProps {
     filter: MapFilter;
@@ -228,6 +224,12 @@ function ResetViewBinding({ puroks }: { puroks: PurokOut[] }) {
 }
 
 const PULSE_DURATION_MS = 4000;
+// Found live 2026-08-17: a genuinely fresh press (seconds old) stopped pulsing the
+// instant the page was refreshed, even though the event was still real and recent —
+// the initial-load suppression below was blanket, not recency-aware. This window lets
+// a truly recent event still pulse on load, while stale data (a purok whose last press
+// was hours ago) still correctly doesn't flash just because the page loaded.
+const LOAD_FRESHNESS_WINDOW_MS = 10000;
 
 export function TacticalMap({ filter, onFilterChange, isDarkMode, mapStyle }: TacticalMapProps) {
     const { puroks, clusters, setFocusedPurokId } = useTingog();
@@ -261,7 +263,9 @@ export function TacticalMap({ filter, onFilterChange, isDarkMode, mapStyle }: Ta
             const previous = lastEventAtRef.current[p.id];
             const isFirstSightingOfThisPurok = previous === undefined;
             const hasFreshEvent = p.last_event_at !== null && p.last_event_at !== previous;
-            const shouldFire = hasFreshEvent && (!isFirstSightingOfThisPurok || hasLoadedOnceRef.current);
+            const isRecentEnoughToShowOnLoad =
+                p.last_event_at !== null && Date.now() - new Date(p.last_event_at).getTime() <= LOAD_FRESHNESS_WINDOW_MS;
+            const shouldFire = hasFreshEvent && (!isFirstSightingOfThisPurok || hasLoadedOnceRef.current || isRecentEnoughToShowOnLoad);
             if (shouldFire) {
                 // Guaranteed signal, independent of filters or whether the popup manages
                 // to open: the marker itself pulses. This is the fix for "there should be
@@ -292,7 +296,7 @@ export function TacticalMap({ filter, onFilterChange, isDarkMode, mapStyle }: Ta
         // "All clear" — a real stable status with nothing currently reported, not a
         // client-side reconstruction of the LUWAS press itself (no hours_since_heartbeat
         // field exists to derive it from anyway).
-        if (filter === "OK") return p.active_needs.length === 0 && p.status === "stable";
+        if (filter === "LUWAS") return p.active_needs.length === 0 && p.status === "stable";
         return true;
     });
 
