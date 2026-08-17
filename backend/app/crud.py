@@ -120,8 +120,10 @@ def list_recent_events(db: Session, minutes: int) -> list[dict]:
     ]
 
 
-def save_briefing_record(db: Session, narrative: str, claims: list[dict], trigger_source: str) -> BriefingRecord:
-    record = BriefingRecord(narrative=narrative, claims=claims, trigger_source=trigger_source)
+def save_briefing_record(
+    db: Session, narrative: str, claims: list[dict], trigger_source: str, assessment: str | None = None
+) -> BriefingRecord:
+    record = BriefingRecord(narrative=narrative, claims=claims, trigger_source=trigger_source, assessment=assessment)
     db.add(record)
     db.commit()
     db.refresh(record)

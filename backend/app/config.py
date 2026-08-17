@@ -64,6 +64,16 @@ OPENROUTER_MODEL_FALLBACKS = _env_list("OPENROUTER_MODEL_FALLBACKS", [])
 # finishing).
 LLM_MODEL_TIMEOUT_SECONDS = _env_float("LLM_MODEL_TIMEOUT_SECONDS", 20)
 
+# The Briefing Agent's third output field, "assessment" (agent/prompts.py's
+# ASSESSMENT_ADDENDUM) — a genuine interpretive layer built ONLY from already-verified
+# claims/narrative (never a new fact), explicitly framed as suggestions, never a
+# decision. Added 2026-08-17, deliberately behind a flag: this is new, higher-risk
+# surface added close to the actual pitch, and needs to be revertible with a single env
+# var flip (or just deleting this line to fall back to the default) rather than a code
+# rollback if it destabilizes reliability. Flip to False (or unset + change the default
+# below) to instantly return to the exact prior claims+narrative-only contract.
+ENABLE_ASSESSMENT_LAYER = _env_bool("ENABLE_ASSESSMENT_LAYER", True)
+
 ESP32_BASE_URL = os.getenv("ESP32_BASE_URL", "http://192.168.4.1")
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./tanaw.db")
 
@@ -94,6 +104,7 @@ GATEWAY_BAUD_RATE = _env_int("GATEWAY_BAUD_RATE", 115200)
 # — an earlier candidate sat ~56m from Purok 5, effectively overlapping it on the map.
 KNOWN_DEVICE_POSITIONS: dict[str, tuple[float, float]] = {
     "DEV-089": (10.9925, 123.9355),
+    "DEV-090": (10.9940, 123.9370),
 }
 
 # Same override idea as KNOWN_DEVICE_POSITIONS, for the display name — an unknown
@@ -103,6 +114,7 @@ KNOWN_DEVICE_POSITIONS: dict[str, tuple[float, float]] = {
 # real from simulated at all.
 KNOWN_DEVICE_NAMES: dict[str, str] = {
     "DEV-089": "Purok 7",
+    "DEV-090": "Purok 8",
 }
 
 # Same override pattern again, for purok_leader — reasonable placeholder name (not any
@@ -111,6 +123,7 @@ KNOWN_DEVICE_NAMES: dict[str, str] = {
 # saying "(TBD)".
 KNOWN_DEVICE_LEADERS: dict[str, str] = {
     "DEV-089": "Rosario Fernandez",
+    "DEV-090": "Miguel Santos",
 }
 
 # Event-triggered mode (see app/escalation.py) — an optional webhook (e.g. Slack/Discord

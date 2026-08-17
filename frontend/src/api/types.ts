@@ -89,6 +89,10 @@ export interface BriefingResponse {
     mode: BriefingMode;
     claims: Record<string, unknown>[] | null;
     narrative: string | null;
+    // Interpretive layer built only from already-verified claims/narrative — never a
+    // new fact. null when config.ENABLE_ASSESSMENT_LAYER is off, or on raw/clarifying
+    // modes, same as narrative/claims.
+    assessment: string | null;
     clarifying_question: string | null;
     tool_results: Record<string, unknown>;
     trigger_source: TriggerSource | null;
@@ -100,6 +104,7 @@ export interface BriefingResponse {
 export interface LastBriefingOut {
     narrative: string;
     claims: Record<string, unknown>[];
+    assessment: string | null;
     trigger_source: TriggerSource;
     created_at: string;
 }
@@ -118,6 +123,7 @@ export type StreamEvent =
           mode: "briefed" | "raw";
           claims?: Record<string, unknown>[];
           narrative?: string;
+          assessment?: string | null;
           tool_results: Record<string, unknown>;
           trigger_source: TriggerSource;
           conversation_id: string;
@@ -134,6 +140,7 @@ export interface ConversationTurnOut {
     steps: Extract<StreamEvent, { type: "tool_call" | "tool_result" }>[];
     narrative: string | null;
     claims: Record<string, unknown>[] | null;
+    assessment: string | null;
     clarifying_question: string | null;
 }
 

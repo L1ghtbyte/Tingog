@@ -348,6 +348,16 @@ function ChatTurnBlock({
                             ))}
                         </div>
                     )}
+                    {/* A second, visually distinct layer — interpretation built only from
+                        the (already fact-checked) narrative above, never a new number or
+                        purok. Kept visually separate (accent border, italic) so it reads
+                        as "the AI's own read on this," not more raw fact citation. */}
+                    {turn.terminalEvent.assessment && (
+                        <div className="border-l-2 border-primary/60 pl-2 flex flex-col gap-0.5">
+                            <span className="text-[9px] font-label-caps font-bold tracking-widest text-primary/80">ASSESSMENT</span>
+                            <p className="text-xs text-on-surface-variant leading-relaxed italic">{turn.terminalEvent.assessment}</p>
+                        </div>
+                    )}
                 </div>
             )}
             {turn.terminalEvent?.type === "final" && turn.terminalEvent.mode === "raw" && (
@@ -410,7 +420,8 @@ export function AISitRep() {
                                 ? { type: "clarifying", clarifying_question: turn.clarifying_question ?? "", conversation_id: history.conversation_id }
                                 : {
                                       type: "final", mode: "briefed", claims: turn.claims ?? undefined, narrative: turn.narrative ?? undefined,
-                                      tool_results: {}, trigger_source: "coordinator_query", conversation_id: history.conversation_id,
+                                      assessment: turn.assessment, tool_results: {},
+                                      trigger_source: "coordinator_query", conversation_id: history.conversation_id,
                                   },
                         isStreaming: false,
                     }))
@@ -433,7 +444,7 @@ export function AISitRep() {
                             steps: [],
                             terminalEvent: {
                                 type: "final", mode: "briefed", claims: last.claims, narrative: last.narrative,
-                                tool_results: {}, trigger_source: last.trigger_source, conversation_id: "",
+                                assessment: last.assessment, tool_results: {}, trigger_source: last.trigger_source, conversation_id: "",
                             },
                             isStreaming: false,
                         },

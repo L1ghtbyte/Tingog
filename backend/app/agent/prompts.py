@@ -7,6 +7,7 @@ produces a final answer.
 
 import json
 
+from app import config
 from app.agent.figure_checker import CheckResult
 
 BASE_PROMPT = """You are a briefing assistant for disaster response coordinators, \
@@ -37,7 +38,7 @@ mention it as an additional claim — but don't let it distract from directly an
 what was asked.
 
 Once you have gathered what you need (usually a handful of tool calls, rarely more), \
-stop calling tools and respond with a JSON object with exactly two keys:
+stop calling tools and respond with a JSON object with these keys:
 - "claims": a list of objects. Each MUST include "source_tool" (the tool that returned \
 the fact) and "source_field" (a path into that tool's result, e.g. "total_events", \
 "[0].hours_since_contact", "[2].need_type" — the tools return bare lists or dicts \
@@ -53,6 +54,19 @@ ambiguous about which purok you mean.
 appearing in the narrative must also appear in a claim.
 Respond with ONLY that JSON object once you're done calling tools — no extra text \
 around it."""
+
+ASSESSMENT_ADDENDUM = """
+
+Also include a third key, "assessment": one short paragraph of genuine interpretation, \
+built ONLY from the claims and narrative you already wrote. Never introduce a new fact, \
+a new number, or a named purok that wasn't already in your narrative — this is not a \
+new classification, it's an interpretation of the one you already made and verified. \
+Explain why the pattern you found actually matters and what's worth the coordinator's \
+attention — not just restating what already happened. Frame it as an observation or a \
+consideration, never as a decision or a ranking of who should get help first — that \
+stays the coordinator's call, always. For example, instead of repeating "Purok 4 has \
+been silent 14 hours," explain what that combination of facts (silence plus a held \
+TABANG) suggests is worth checking on, without inventing any new specifics."""
 
 CLARIFYING_QUESTION_ADDENDUM = """
 
@@ -76,12 +90,15 @@ RETRY_CORRECTION_PREFIX = "IMPORTANT — your previous attempt"
 
 
 def _system_prompt(question: str | None) -> str:
+    prompt = BASE_PROMPT
+    if config.ENABLE_ASSESSMENT_LAYER:
+        prompt += ASSESSMENT_ADDENDUM
     # Clarifying questions are only offered when a real coordinator is actually there
     # to answer one — never for the default general briefing (question=None), which
     # may run unattended (scheduled mode).
     if question:
-        return BASE_PROMPT + CLARIFYING_QUESTION_ADDENDUM
-    return BASE_PROMPT
+        prompt += CLARIFYING_QUESTION_ADDENDUM
+    return prompt
 
 
 def build_initial_messages(question: str | None = None) -> list[dict]:
@@ -117,6 +134,14 @@ def build_retry_messages(question: str | None, result: CheckResult) -> list[dict
             f"{result.actual_value} with no backing claim. Every number in the "
             f"narrative must appear in a claim. Call the tools again and be careful to "
             f"back every number this time."
+        )
+    elif result.failure_reason == "unbacked_assessment_number":
+        correction = (
+            f"IMPORTANT — your previous attempt's \"assessment\" mentioned the number "
+            f"{result.actual_value}, which never appeared in your claims or narrative. "
+            f"The assessment must interpret facts you already verified, never introduce "
+            f"a new one. Call the tools again and keep the assessment to interpretation "
+            f"only, no new specifics."
         )
     else:
         correction = (

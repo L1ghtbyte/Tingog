@@ -21,7 +21,8 @@ _PATH_TOKEN_RE = re.compile(r"([^.\[\]]+)|\[(\d+)\]")
 @dataclass
 class CheckResult:
     passed: bool
-    failure_reason: str | None = None  # "claim_mismatch" | "unbacked_narrative_number" | "unknown_source_tool"
+    # "claim_mismatch" | "unbacked_narrative_number" | "unbacked_assessment_number" | "unknown_source_tool"
+    failure_reason: str | None = None
     failed_claim: dict | None = None
     actual_value: object | None = None
 
@@ -101,6 +102,14 @@ def _field_matches(record: dict, key: str, value, known_numbers: set[float] | No
         return True
     if isinstance(value, str):
         return any(isinstance(v, str) and v and v in value for v in record.values())
+    if isinstance(value, int) and not isinstance(value, bool):
+        # Found live 2026-08-17: a claim wrote a plain whole number (e.g. "hours": 14)
+        # for a real value with decimal precision (14.1) — a reasonable rounding when
+        # citing a precise figure in prose, not a fabrication. Deliberately narrow: only
+        # an INTEGER claim value rounding to match a real FLOAT is tolerated, so a
+        # genuinely wrong whole number (e.g. 99) still won't coincidentally round-match.
+        if any(isinstance(v, float) and round(v) == value for v in record.values()):
+            return True
     if known_numbers and isinstance(value, (int, float)) and not isinstance(value, bool):
         return float(value) in known_numbers
     return False
@@ -201,5 +210,16 @@ def check(llm_output: dict, tool_results: dict, tool_arg_numbers: set[float] | N
         number = float(match.group(0))
         if number not in claimed_numbers and number not in tool_arg_numbers:
             return CheckResult(False, "unbacked_narrative_number", None, match.group(0))
+
+    # "assessment" (agent/prompts.py's ASSESSMENT_ADDENDUM, config.ENABLE_ASSESSMENT_LAYER)
+    # is genuine interpretation, not a new fact source — it's only allowed to reference
+    # numbers already backed by a claim or a known tool argument, same bar the narrative
+    # itself just passed above. A model with the addendum disabled never produces this
+    # key, so llm_output.get() here is a no-op for every pre-existing caller/test.
+    assessment = llm_output.get("assessment") or ""
+    for match in NUMBER_RE.finditer(assessment):
+        number = float(match.group(0))
+        if number not in claimed_numbers and number not in tool_arg_numbers:
+            return CheckResult(False, "unbacked_assessment_number", None, match.group(0))
 
     return CheckResult(True)

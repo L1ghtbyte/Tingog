@@ -67,7 +67,8 @@ def test_reconstruct_conversation_turns_replays_real_exchange_across_a_retry():
 
     assert turns == [
         {
-            "question": "What about Purok 4?", "mode": "briefed", "narrative": "Purok 4 is stable.", "claims": [], "clarifying_question": None,
+            "question": "What about Purok 4?", "mode": "briefed", "narrative": "Purok 4 is stable.", "claims": [],
+            "assessment": None, "clarifying_question": None,
             "steps": [
                 {"type": "tool_call", "tool": "get_purok", "args": {"purok_id": 4}},
                 {"type": "tool_result", "tool": "get_purok", "result": {"status": "unknown"}},
@@ -89,4 +90,6 @@ def test_reconstruct_conversation_turns_maps_default_general_text_to_null_questi
 
     turns = briefing_agent.reconstruct_conversation_turns(messages)
 
-    assert turns == [{"question": None, "mode": "briefed", "narrative": "All quiet.", "claims": [], "clarifying_question": None, "steps": []}]
+    assert turns == [
+        {"question": None, "mode": "briefed", "narrative": "All quiet.", "claims": [], "assessment": None, "clarifying_question": None, "steps": []}
+    ]

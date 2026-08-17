@@ -94,6 +94,10 @@ class BriefingResponse(BaseModel):
     mode: Literal["briefed", "raw", "clarifying"]
     claims: list[dict[str, Any]] | None = None
     narrative: str | None = None
+    # Interpretive layer built only from already-verified claims/narrative — never a new
+    # fact (config.ENABLE_ASSESSMENT_LAYER). None when the flag is off, or on raw/
+    # clarifying modes, same as narrative/claims.
+    assessment: str | None = None
     clarifying_question: str | None = None
     tool_results: dict[str, Any]
     trigger_source: Literal["coordinator_query", "scheduled"] | None = None
@@ -110,6 +114,7 @@ class LastBriefingOut(BaseModel):
 
     narrative: str
     claims: list[dict[str, Any]]
+    assessment: str | None = None
     trigger_source: Literal["coordinator_query", "scheduled"]
     created_at: UTCDatetime
 
@@ -125,6 +130,7 @@ class ConversationTurnOut(BaseModel):
     steps: list[dict[str, Any]] = []
     narrative: str | None = None
     claims: list[dict[str, Any]] | None = None
+    assessment: str | None = None
     clarifying_question: str | None = None
 
 

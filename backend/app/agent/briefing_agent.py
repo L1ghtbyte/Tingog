@@ -228,7 +228,8 @@ def reconstruct_conversation_turns(messages: list[dict]) -> list[dict]:
                 else:
                     turns.append({
                         "question": pending_question, "mode": "briefed", "steps": current_steps,
-                        "narrative": parsed.get("narrative"), "claims": parsed.get("claims"), "clarifying_question": None,
+                        "narrative": parsed.get("narrative"), "claims": parsed.get("claims"),
+                        "assessment": parsed.get("assessment"), "clarifying_question": None,
                     })
                 pending_question = None
                 current_steps = []
@@ -275,10 +276,14 @@ async def run_briefing(
 
         result = check(llm_output, tool_results, tool_arg_numbers)
         if result.passed:
-            save_briefing_record(db, llm_output["narrative"], llm_output["claims"], trigger_source=trigger_source)
+            save_briefing_record(
+                db, llm_output["narrative"], llm_output["claims"], trigger_source=trigger_source,
+                assessment=llm_output.get("assessment"),
+            )
             save_conversation(db, conversation_id, final_messages)
             return BriefingResponse(
                 mode="briefed", claims=llm_output["claims"], narrative=llm_output["narrative"],
+                assessment=llm_output.get("assessment"),
                 tool_results=tool_results, trigger_source=trigger_source, conversation_id=conversation_id,
             )
         _log_check_failure("first", llm_output, result)
@@ -295,10 +300,14 @@ async def run_briefing(
 
         result2 = check(retry_output, retry_tool_results, retry_tool_arg_numbers)
         if result2.passed:
-            save_briefing_record(db, retry_output["narrative"], retry_output["claims"], trigger_source=trigger_source)
+            save_briefing_record(
+                db, retry_output["narrative"], retry_output["claims"], trigger_source=trigger_source,
+                assessment=retry_output.get("assessment"),
+            )
             save_conversation(db, conversation_id, retry_messages)
             return BriefingResponse(
                 mode="briefed", claims=retry_output["claims"], narrative=retry_output["narrative"],
+                assessment=retry_output.get("assessment"),
                 tool_results=retry_tool_results, trigger_source=trigger_source, conversation_id=conversation_id,
             )
         _log_check_failure("retry", retry_output, result2)
@@ -357,11 +366,15 @@ async def run_briefing_stream(
         result = check(llm_output, tool_results, tool_arg_numbers)
         if result.passed:
             if persist:
-                save_briefing_record(db, llm_output["narrative"], llm_output["claims"], trigger_source="coordinator_query")
+                save_briefing_record(
+                    db, llm_output["narrative"], llm_output["claims"], trigger_source="coordinator_query",
+                    assessment=llm_output.get("assessment"),
+                )
                 save_conversation(db, conversation_id, final_messages)
             yield {
                 "type": "final", "mode": "briefed", "claims": llm_output["claims"],
-                "narrative": llm_output["narrative"], "tool_results": tool_results,
+                "narrative": llm_output["narrative"], "assessment": llm_output.get("assessment"),
+                "tool_results": tool_results,
                 "trigger_source": "coordinator_query", "conversation_id": conversation_id,
             }
             return
@@ -392,11 +405,15 @@ async def run_briefing_stream(
         result2 = check(retry_output, retry_tool_results, retry_tool_arg_numbers)
         if result2.passed:
             if persist:
-                save_briefing_record(db, retry_output["narrative"], retry_output["claims"], trigger_source="coordinator_query")
+                save_briefing_record(
+                    db, retry_output["narrative"], retry_output["claims"], trigger_source="coordinator_query",
+                    assessment=retry_output.get("assessment"),
+                )
                 save_conversation(db, conversation_id, retry_messages)
             yield {
                 "type": "final", "mode": "briefed", "claims": retry_output["claims"],
-                "narrative": retry_output["narrative"], "tool_results": retry_tool_results,
+                "narrative": retry_output["narrative"], "assessment": retry_output.get("assessment"),
+                "tool_results": retry_tool_results,
                 "trigger_source": "coordinator_query", "conversation_id": conversation_id,
             }
             return

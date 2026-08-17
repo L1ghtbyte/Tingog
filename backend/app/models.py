@@ -74,6 +74,9 @@ class BriefingRecord(Base):
     # on-demand ask) or "scheduled" (the periodic loop). Event-triggered never reaches
     # here at all — it's purely deterministic, never touches the Briefing Agent.
     trigger_source = Column(String, nullable=False, default="coordinator_query")
+    # The agent's interpretive layer (config.ENABLE_ASSESSMENT_LAYER) — nullable since
+    # it's optional/flag-gated, and older rows saved before this field existed never had one.
+    assessment = Column(String, nullable=True)
 
 
 class EscalationRecord(Base):

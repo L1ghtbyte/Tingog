@@ -347,3 +347,81 @@ def test_claim_with_false_sibling_field_still_fails():
     result = check(llm_output, tool_results)
     assert not result.passed
     assert result.failure_reason == "claim_mismatch"
+
+
+def test_claim_rounding_a_precise_float_to_a_whole_number_passes():
+    # Regression test: found live 2026-08-17 — a claim wrote "hours": 14 for a real
+    # value of 14.1, a reasonable plain-language rounding when citing a precise figure
+    # in prose, not a fabrication.
+    tool_results = {"get_unaccounted_puroks": [{"purok_name": "Purok 4", "hours_since_contact": 14.1}]}
+    llm_output = {
+        "claims": [
+            {"source_tool": "get_unaccounted_puroks", "source_field": "[0].purok_name", "purok": "Purok 4", "hours": 14}
+        ],
+        "narrative": "Purok 4 has had no contact in over 14 hours.",
+    }
+    result = check(llm_output, tool_results)
+    assert result.passed
+
+
+def test_claim_with_wrong_whole_number_does_not_coincidentally_round_match():
+    # The leniency above must not become a loophole — a genuinely wrong whole number
+    # that doesn't round-match the real float is still rejected.
+    tool_results = {"get_unaccounted_puroks": [{"purok_name": "Purok 4", "hours_since_contact": 14.1}]}
+    llm_output = {
+        "claims": [
+            {"source_tool": "get_unaccounted_puroks", "source_field": "[0].purok_name", "purok": "Purok 4", "hours": 99}
+        ],
+        "narrative": "Purok 4 has had no contact in over 99 hours.",
+    }
+    result = check(llm_output, tool_results)
+    assert not result.passed
+    assert result.failure_reason == "claim_mismatch"
+
+
+def test_assessment_referencing_only_already_verified_numbers_passes():
+    # The "assessment" field (config.ENABLE_ASSESSMENT_LAYER) is genuine interpretation
+    # built ONLY from already-verified claims/narrative — it's allowed to restate a
+    # number that's already backed, just not introduce a new one.
+    tool_results = {"get_unaccounted_puroks": [{"purok_name": "Purok 4", "hours_since_contact": 14.0}]}
+    llm_output = {
+        "claims": [
+            {"source_tool": "get_unaccounted_puroks", "source_field": "[0].purok_name", "purok_name": "Purok 4", "hours_since_contact": 14.0}
+        ],
+        "narrative": "Purok 4 has had no contact in over 14.0 hours.",
+        "assessment": "A silence of 14.0 hours this long is worth a direct check-in, not just a routine follow-up.",
+    }
+    result = check(llm_output, tool_results)
+    assert result.passed
+
+
+def test_assessment_with_no_numbers_at_all_passes():
+    # Pure interpretive language with no numbers in it at all is always fine — the check
+    # only ever looks at numbers, never tries to validate prose/opinion content.
+    tool_results = {"get_unaccounted_puroks": [{"purok_name": "Purok 4", "hours_since_contact": 14.0}]}
+    llm_output = {
+        "claims": [
+            {"source_tool": "get_unaccounted_puroks", "source_field": "[0].purok_name", "purok_name": "Purok 4", "hours_since_contact": 14.0}
+        ],
+        "narrative": "Purok 4 has had no contact in over 14.0 hours.",
+        "assessment": "This kind of prolonged silence is worth prioritizing for a direct check-in.",
+    }
+    result = check(llm_output, tool_results)
+    assert result.passed
+
+
+def test_assessment_introducing_a_new_unbacked_number_fails():
+    # The leniency above must not become a loophole for a genuinely new, uncited fact —
+    # a number that never appeared in any claim or the narrative is a real hallucination,
+    # even if it's phrased as "interpretation" rather than a direct claim.
+    tool_results = {"get_unaccounted_puroks": [{"purok_name": "Purok 4", "hours_since_contact": 14.0}]}
+    llm_output = {
+        "claims": [
+            {"source_tool": "get_unaccounted_puroks", "source_field": "[0].purok_name", "purok_name": "Purok 4", "hours_since_contact": 14.0}
+        ],
+        "narrative": "Purok 4 has had no contact in over 14.0 hours.",
+        "assessment": "This is the 3rd time this month Purok 4 has gone silent, which is concerning.",
+    }
+    result = check(llm_output, tool_results)
+    assert not result.passed
+    assert result.failure_reason == "unbacked_assessment_number"
