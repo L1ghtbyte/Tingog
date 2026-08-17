@@ -42,19 +42,30 @@ const SEVERITY_TEXT_COLOR: Record<PurokOut["severity"], string> = {
 
 function createMarkerIcon(purok: PurokOut, isRecentlyPressed: boolean): L.DivIcon {
     const isCritical = purok.active_needs.includes("TABANG");
+    // Found live 2026-08-17: a still-open need (TUBIG/TAMBAL/PAGKAON, not TABANG) had
+    // no lasting visual signal at all — only the transient "just happened" flash below,
+    // which fades after a few seconds by design. A coordinator glancing at the map
+    // minutes later couldn't tell "still needs something" from "already resolved" once
+    // that flash faded. This ring fixes that: persists as long as the need stays open,
+    // same mechanism as the TABANG ring, just amber instead of red — reusing this app's
+    // existing urgency language (red = critical, amber = a needs the KPI strip already
+    // uses) rather than treating every open need as equally critical.
+    const hasOtherOpenNeed = !isCritical && purok.active_needs.length > 0;
     // Uniform marker shape regardless of is_simulated — the simulated/real distinction
     // (both the text badge and this shape split) was deliberately removed from the UI;
     // is_simulated stays real in the DB/API, just no longer surfaced visually here.
     //
-    // Two independent rings, deliberately different in size/color so they're never
-    // confused: the red ring means "TABANG is currently an active need" (persists as
-    // long as that's true). The larger amber ring means "a new event just landed on
-    // this purok" (fades after a few seconds) — this is the guaranteed, filter- and
-    // popup-independent signal that something happened here, requested directly:
-    // relying solely on the popup opening wasn't a reliable enough "this is active".
+    // Three independent rings, deliberately different in size/color so they're never
+    // confused: red means "TABANG is currently an active need," amber (inner) means
+    // "some other need is currently open" — both persist as long as that's true. The
+    // larger, lighter amber ring means "a new event just landed on this purok" (fades
+    // after a few seconds) — this is the guaranteed, filter- and popup-independent
+    // signal that something happened here, requested directly: relying solely on the
+    // popup opening wasn't a reliable enough "this is active".
     const html = `
         <div class="relative w-4 h-4 rounded-full border-2 ${STATUS_COLOR[purok.status]}">
             ${isCritical ? '<div class="absolute inset-0 rounded-full border-2 border-red-500 animate-ping opacity-75"></div>' : ""}
+            ${hasOtherOpenNeed ? '<div class="absolute inset-0 rounded-full border-2 border-amber-400 animate-ping opacity-75"></div>' : ""}
             ${isRecentlyPressed ? '<div class="absolute -inset-2.5 rounded-full border-[3px] border-amber-300 animate-ping opacity-90"></div>' : ""}
         </div>
     `;
