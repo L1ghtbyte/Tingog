@@ -10,6 +10,7 @@ multi-turn tool-calling — the model decides which tools it needs and calls the
 via TOOL_FUNCTIONS below, rather than being handed everything pre-fetched.
 """
 
+import logging
 from datetime import timedelta
 
 from sqlalchemy.orm import Session
@@ -27,6 +28,8 @@ from app.models import Event, Purok
 from app.clustering import get_active_clusters as _get_active_clusters
 from app.anomaly import get_anomalies as _get_anomalies
 from app.timeutil import utcnow
+
+logger = logging.getLogger("tanaw.agent_tools")
 
 NEED_TYPES = ["TABANG", "TUBIG", "TAMBAL", "PAGKAON"]
 
@@ -75,6 +78,12 @@ def get_anomalies(db: Session) -> list[dict]:
 
 
 def get_recent_activity(db: Session, minutes: int) -> dict:
+    # Found live 2026-08-17: a model call arrived with minutes="30" (a JSON string, not
+    # a number) — timedelta() raises TypeError on a str, crashing the whole stream
+    # instead of degrading gracefully. Coerced here since this is the one call site
+    # that actually needs a real numeric type; call_tool's try/except (below) is the
+    # general safety net for anything this doesn't catch.
+    minutes = float(minutes)
     since = utcnow() - timedelta(minutes=minutes)
     events = db.query(Event).filter(Event.received_at >= since).all()
 
@@ -211,10 +220,19 @@ TOOL_FUNCTIONS = {
 
 def call_tool(db: Session, name: str, args: dict) -> object:
     """Executes one model-requested tool call. Returns a JSON-serializable result, or an
-    {"error": ...} dict for an unknown tool name — fed back to the model as the tool
-    result either way, so a hallucinated tool name is self-correcting within the loop
-    rather than crashing the request."""
+    {"error": ...} dict for an unknown tool name OR a malformed argument (e.g. a number
+    passed as a quoted string that a specific tool didn't happen to coerce) — fed back
+    to the model as the tool result either way, so it's self-correcting within the loop
+    rather than crashing the whole stream. Found live 2026-08-17: a bad argument value
+    reached an unguarded timedelta() call and took down the entire request — this is the
+    general safety net for that whole class of failure, not just the one instance fixed
+    directly in get_recent_activity."""
     fn = TOOL_FUNCTIONS.get(name)
     if fn is None:
         return {"error": f"unknown tool: {name}"}
-    return fn(db, args or {})
+    try:
+        return fn(db, args or {})
+    except Exception as exc:  # noqa: BLE001 — deliberately broad: any tool-argument
+        # shape mismatch should degrade to a model-visible error, never crash the stream.
+        logger.warning("Tool call failed: name=%s args=%s error=%s", name, args, exc)
+        return {"error": f"{name} call failed: {exc}"}

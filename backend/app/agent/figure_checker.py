@@ -63,7 +63,39 @@ def _claim_value_fields(claim: dict) -> dict:
     return {k: v for k, v in claim.items() if k not in ("source_tool", "source_field")}
 
 
-def _matches(actual, expected: dict) -> bool:
+def _field_matches(record: dict, key: str, value, known_numbers: set[float] | None = None) -> bool:
+    """A claim's extra (sibling) field is verified if either its literal key exists in
+    the record with a matching value, OR the claimed value appears anywhere else among
+    the record's own values. Found live 2026-08-17: a real, otherwise-correct claim
+    used its own reasonable label ("purok": "Purok 4") for a fact the real record
+    stores under a different key ("purok_name": "Purok 4") — the claimed VALUE was
+    exactly right, but the exact-key-match check rejected the whole claim over a purely
+    presentational naming difference, not a factual error. Requiring the value to
+    appear *somewhere* in the same record still rejects a genuinely fabricated value
+    (e.g. a wrong purok name) — it just stops requiring the model to guess the backend's
+    internal field names for facts it's allowed to restate in its own words.
+
+    Also tolerates mild paraphrasing of string values — e.g. "high severity" for the
+    real value "high" (found live 2026-08-17). The claimed string must fully CONTAIN a
+    real string value from the record, not just share a substring in either direction —
+    a genuinely wrong value (e.g. "low severity" when the real value is "high") still
+    contains no real value from the record and is still rejected.
+
+    known_numbers (tool-call arguments, e.g. window_minutes=30): a claim can bundle a
+    query parameter as a sibling fact (e.g. {"value": 2, "window_minutes": 30}) — that
+    number will never appear in any tool RESULT no matter how the record is searched,
+    since it was never returned data in the first place, only an input. Found live
+    2026-08-17 as a real rejection of an otherwise fully correct claim."""
+    if record.get(key) == value or any(v == value for v in record.values()):
+        return True
+    if isinstance(value, str):
+        return any(isinstance(v, str) and v and v in value for v in record.values())
+    if known_numbers and isinstance(value, (int, float)) and not isinstance(value, bool):
+        return float(value) in known_numbers
+    return False
+
+
+def _matches(actual, expected: dict, known_numbers: set[float] | None = None) -> bool:
     if not expected:
         return False
     if len(expected) == 1 and "value" in expected:
@@ -78,7 +110,7 @@ def _matches(actual, expected: dict) -> bool:
             return True
         return False
     if isinstance(actual, dict):
-        return all(actual.get(k) == v for k, v in expected.items())
+        return all(_field_matches(actual, k, v, known_numbers) for k, v in expected.items())
     if len(expected) == 1:
         return actual == next(iter(expected.values()))
     return False
@@ -113,9 +145,15 @@ def _flatten_numbers(value) -> set[float]:
     return numbers
 
 
-def check(llm_output: dict, tool_results: dict) -> CheckResult:
+def check(llm_output: dict, tool_results: dict, tool_arg_numbers: set[float] | None = None) -> CheckResult:
+    """tool_arg_numbers: numbers the model itself passed as tool-call arguments (e.g.
+    minutes=30 for a query window) — not present in any tool RESULT, so they can't back
+    a claim, but they're still real known-legitimate numbers the narrative should be
+    allowed to mention (e.g. "in the last 30 minutes") without that being flagged as an
+    unbacked hallucination. Found live 2026-08-17: previously rejected every time."""
     claims = llm_output.get("claims") or []
     narrative = llm_output.get("narrative") or ""
+    tool_arg_numbers = tool_arg_numbers or set()
 
     for claim in claims:
         source_tool = claim.get("source_tool")
@@ -127,7 +165,7 @@ def check(llm_output: dict, tool_results: dict) -> CheckResult:
         expected = _claim_value_fields(claim)
 
         actual = resolve_path(root, source_field)
-        if _matches(actual, expected):
+        if _matches(actual, expected, tool_arg_numbers):
             continue
 
         # Fallback: source_field may name just ONE field of a claim that also bundles
@@ -139,7 +177,7 @@ def check(llm_output: dict, tool_results: dict) -> CheckResult:
         # this still rejects a claim with any actually-wrong field, it just stops
         # requiring source_field to be the ONLY field the claim describes.
         parent = resolve_path(root, _strip_last_segment(source_field))
-        if isinstance(parent, dict) and all(parent.get(k) == v for k, v in expected.items()):
+        if isinstance(parent, dict) and all(_field_matches(parent, k, v, tool_arg_numbers) for k, v in expected.items()):
             continue
 
         return CheckResult(False, "claim_mismatch", claim, actual)
@@ -149,7 +187,8 @@ def check(llm_output: dict, tool_results: dict) -> CheckResult:
         claimed_numbers |= _flatten_numbers(_claim_value_fields(claim))
 
     for match in NUMBER_RE.finditer(narrative):
-        if float(match.group(0)) not in claimed_numbers:
+        number = float(match.group(0))
+        if number not in claimed_numbers and number not in tool_arg_numbers:
             return CheckResult(False, "unbacked_narrative_number", None, match.group(0))
 
     return CheckResult(True)

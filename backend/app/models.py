@@ -64,6 +64,10 @@ class BriefingRecord(Base):
     created_at = Column(DateTime, nullable=False, default=utcnow, index=True)
     narrative = Column(String, nullable=False)
     claims = Column(JSON, nullable=False)
+    # Which of the three real invocation modes produced this: "coordinator_query" (an
+    # on-demand ask) or "scheduled" (the periodic loop). Event-triggered never reaches
+    # here at all — it's purely deterministic, never touches the Briefing Agent.
+    trigger_source = Column(String, nullable=False, default="coordinator_query")
 
 
 class EscalationRecord(Base):

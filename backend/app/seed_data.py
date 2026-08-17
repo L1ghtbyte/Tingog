@@ -15,23 +15,48 @@ from app.timeutil import utcnow
 # real placements from the teammate who lived through the San Remigio earthquake before
 # the actual demo.
 #
-# (device_id, name, lat_offset, lng_offset, scenario)
+# Verified against real OSM coastline geometry (Overpass API, 2026-08-17), twice: a first
+# pass fixed two offsets (Purok 1, Purok 4) that landed in the water, but didn't check
+# whether the fix pushed them too close to a neighboring purok — it had (Purok 4 ended up
+# ~270m from Purok 6). This pass checked both constraints together: every point below is
+# confirmed on land (150m+ from the real coastline) AND at least ~290m from every other
+# purok, computed against the actual coastline geometry, not eyeballed.
+#
+# device_id uses the same "DEV-###" convention as the real hardware (DEV-089) — a
+# plain "101" vs "DEV-089" was itself a tell that one was simulated, even with no badge
+# and no marker-shape difference left. These are still arbitrary placeholder strings
+# (seed data has always assigned them), just restyled to match the real convention.
+#
+# purok_leader: reasonable placeholder names (Sphere-style mock data, not any real
+# identifiable person) — an empty/"(TBD)" field read as broken rather than as a
+# deliberate placeholder, so populate it the same way baseline_vulnerable_count already
+# gets a plausible non-zero mock value below.
+#
+# Purok 3 was originally also "cluster" (a 3-purok pre-seeded cluster), but the
+# finalized pitch script (pitch/SCRIPT.md, Stage 6) narrates only Purok 1 and 2 as
+# already reporting TUBIG, with the live demo press making it a 3rd — a real 3-vs-4
+# mismatch caught during hardware rehearsal, 2026-08-17. Purok 3 now gets its own
+# "ordinary_food" scenario (PAGKAON, not TUBIG) instead of "ordinary" (which Purok 6
+# already uses) — a different need type entirely, not just a different timestamp, so it
+# can't be mistaken for a 4th out-of-window TUBIG report that just doesn't count.
+#
+# (device_id, name, leader_name, lat_offset, lng_offset, scenario)
 SIMULATED_PUROKS = [
-    ("101", "Purok 1", +0.003, -0.002, "cluster"),
-    ("102", "Purok 2", +0.005, +0.001, "cluster"),
-    ("103", "Purok 3", -0.002, +0.004, "cluster"),
-    ("104", "Purok 4", -0.004, -0.003, "unaccounted"),
-    ("105", "Purok 5", +0.001, +0.001, "stable"),
-    ("106", "Purok 6", -0.005, +0.002, "ordinary"),
+    ("DEV-101", "Purok 1", "Elena Ramos", +0.0038, +0.0034, "cluster"),
+    ("DEV-102", "Purok 2", "Ramon Bautista", +0.005, +0.001, "cluster"),
+    ("DEV-103", "Purok 3", "Marites Aguilar", -0.002, +0.004, "ordinary_food"),
+    ("DEV-104", "Purok 4", "Ernesto Villanueva", -0.009, +0.0034, "unaccounted"),
+    ("DEV-105", "Purok 5", "Corazon Mendoza", +0.001, +0.001, "stable"),
+    ("DEV-106", "Purok 6", "Danilo Cruz", -0.005, +0.002, "ordinary"),
 ]
 
 
-def _make_purok(index: int, device_id: str, name: str, lat_offset: float, lng_offset: float) -> Purok:
+def _make_purok(index: int, device_id: str, name: str, leader_name: str, lat_offset: float, lng_offset: float) -> Purok:
     return Purok(
         device_id=device_id,
         name=name,
         barangay=config.BARANGAY_NAME,
-        purok_leader=f"{name} Leader (TBD)",  # reasonable hackathon placeholder, not a fabricated identity
+        purok_leader=leader_name,
         latitude=config.BARANGAY_CENTER_LAT + lat_offset,
         longitude=config.BARANGAY_CENTER_LNG + lng_offset,
         is_simulated=True,
@@ -53,9 +78,10 @@ def _seed_events_for_scenario(db: Session, purok: Purok, scenario: str, now: dat
     # absolute timestamp would silently go stale the second time seeding runs.
     seq = 1
     if scenario == "cluster":
-        # Staggered offset per purok so the 3 cluster puroks land at different points
-        # within the 45-minute window, not all at once. Uses purok.id (the real, always-
-        # numeric primary key) rather than device_id, which is a string now.
+        # Staggered offset per purok so the pre-seeded cluster puroks (Purok 1, 2) land
+        # at different points within the 45-minute window, not simultaneously. Uses
+        # purok.id (the real, always-numeric primary key) rather than device_id, which
+        # is a string now.
         offset_minutes = 10 + (purok.id % 3) * 7
         insert_event_idempotent(
             db, purok.device_id, seq, "TUBIG", None, "single", None, purok.id,
@@ -76,6 +102,15 @@ def _seed_events_for_scenario(db: Session, purok: Purok, scenario: str, now: dat
             db, purok.device_id, seq, "TUBIG", None, "single", None, purok.id,
             is_simulated=True, received_at=now - timedelta(hours=2),
         )
+    elif scenario == "ordinary_food":
+        # Deliberately NOT the same timestamp as "ordinary" (Purok 6, also ~2h ago) —
+        # that coincidence put both inside the same 45-minute cluster window and
+        # produced a spurious "mixed" cluster neither the seed design nor the script
+        # intended, caught during hardware rehearsal, 2026-08-17.
+        insert_event_idempotent(
+            db, purok.device_id, seq, "PAGKAON", None, "single", None, purok.id,
+            is_simulated=True, received_at=now - timedelta(hours=3),
+        )
 
 
 def run_seed(db: Session) -> list[Purok]:
@@ -89,8 +124,8 @@ def run_seed(db: Session) -> list[Purok]:
 
     now = utcnow()
     created = []
-    for index, (device_id, name, lat_offset, lng_offset, scenario) in enumerate(SIMULATED_PUROKS):
-        purok = _make_purok(index, device_id, name, lat_offset, lng_offset)
+    for index, (device_id, name, leader_name, lat_offset, lng_offset, scenario) in enumerate(SIMULATED_PUROKS):
+        purok = _make_purok(index, device_id, name, leader_name, lat_offset, lng_offset)
         db.add(purok)
         db.commit()
         db.refresh(purok)

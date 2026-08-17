@@ -43,9 +43,18 @@ GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 GROQ_MODELS = _env_list("GROQ_MODELS", ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"])
 
 NVIDIA_API_KEY = os.getenv("NVIDIA_API_KEY", "")
-# Verify against the live catalog at build.nvidia.com/explore/discover before the actual
-# demo — exact slugs can change, same caveat as OpenRouter's model list.
-NVIDIA_MODELS = _env_list("NVIDIA_MODELS", ["meta/llama-3.1-8b-instruct", "nvidia/nemotron-nano-9b-v2"])
+# Verify against the live catalog at build.nvidia.com/explore/discover (or GET
+# https://integrate.api.nvidia.com/v1/models with the real key) before the actual demo —
+# exact slugs can change, same caveat as OpenRouter's model list. Confirmed live
+# 2026-08-17 by querying that endpoint directly: the slug is "nvidia/nvidia-nemotron-
+# nano-9b-v2" (the "nvidia-" prefix repeats), NOT "nvidia/nemotron-nano-9b-v2" — the
+# shorter form 404s on every single attempt, silently wasting one full fallback-chain
+# hop on every LLM call. nvidia-nemotron-nano-9b-v2 is listed FIRST: meta/llama-3.1-8b-
+# instruct has a separate, confirmed structural issue ("This model only supports
+# single tool-calls at once!") on this agent's normal multi-tool-call turns — kept as a
+# last resort (it does succeed on single-tool turns) rather than removed, but must never
+# sit ahead of a model that handles multi-tool turns correctly.
+NVIDIA_MODELS = _env_list("NVIDIA_MODELS", ["nvidia/nvidia-nemotron-nano-9b-v2", "meta/llama-3.1-8b-instruct"])
 
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
 OPENROUTER_MODEL_FALLBACKS = _env_list("OPENROUTER_MODEL_FALLBACKS", [])
@@ -73,12 +82,36 @@ ENABLE_LEGACY_WIFI_INGESTION = _env_bool("ENABLE_LEGACY_WIFI_INGESTION", False)
 GATEWAY_SERIAL_PORT = os.getenv("GATEWAY_SERIAL_PORT", "COM7")
 GATEWAY_BAUD_RATE = _env_int("GATEWAY_BAUD_RATE", 115200)
 
-# Devices with a known, intended real-world placement (device_id -> (lat, lng)). Empty by
-# default — a newly auto-registered gateway device without an entry here gets the
-# barangay centroid plus a small deterministic offset instead (see
-# ingestion_serial.py's _deterministic_offset), the same placeholder-coordinate pattern
-# used everywhere else in this project, pending real placement data.
-KNOWN_DEVICE_POSITIONS: dict[str, tuple[float, float]] = {}
+# Devices with a known, intended real-world placement (device_id -> (lat, lng)). A newly
+# auto-registered gateway device without an entry here gets the barangay centroid plus a
+# small deterministic offset instead (see ingestion_serial.py's _deterministic_offset) —
+# that fallback has no awareness of the real coastline, and for our actual demo device
+# (DEV-089) it happened to land in the water (verified against real OSM coastline
+# geometry, 2026-08-17). Overriding it here with a checked, on-land position rather than
+# patching the generic hash formula, which needs to stay a reasonable generic fallback
+# for any future unknown device, not tuned to this one coastline. This position was
+# picked (and re-picked once) specifically to stay ~300m+ from every simulated purok too
+# — an earlier candidate sat ~56m from Purok 5, effectively overlapping it on the map.
+KNOWN_DEVICE_POSITIONS: dict[str, tuple[float, float]] = {
+    "DEV-089": (10.9925, 123.9355),
+}
+
+# Same override idea as KNOWN_DEVICE_POSITIONS, for the display name — an unknown
+# device still falls back to a generic "Live Device (id)" name (see
+# ingestion_serial.py), but our actual demo device gets a real purok-style name so it
+# reads the same as every simulated purok, matching the UI no longer distinguishing
+# real from simulated at all.
+KNOWN_DEVICE_NAMES: dict[str, str] = {
+    "DEV-089": "Purok 7",
+}
+
+# Same override pattern again, for purok_leader — reasonable placeholder name (not any
+# real identifiable person), same category as the simulated puroks' leader names in
+# seed_data.py, so this purok's popup card doesn't stand out as the only one still
+# saying "(TBD)".
+KNOWN_DEVICE_LEADERS: dict[str, str] = {
+    "DEV-089": "Rosario Fernandez",
+}
 
 # Event-triggered mode (see app/escalation.py) — an optional webhook (e.g. Slack/Discord
 # incoming-webhook URL) posted to the instant a purok newly crosses into severity="high".

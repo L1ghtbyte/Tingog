@@ -22,6 +22,7 @@ import asyncio
 import json
 import logging
 import secrets
+from collections.abc import AsyncIterator
 
 from sqlalchemy.orm import Session
 
@@ -54,17 +55,49 @@ def _record_tool_result(tool_results: dict, name: str, args: dict, result: objec
         tool_results[name] = result
 
 
-async def _run_tool_calling_session(db: Session, messages: list[dict]) -> tuple[dict, dict, list[dict]]:
-    """Returns (parsed final answer, tool_results gathered, full message history) —
-    the message history is what gets persisted for conversation continuity."""
+def _record_tool_arg_numbers(tool_arg_numbers: set[float], args: dict) -> None:
+    # A number the model itself chose as a tool argument (e.g. minutes=30 for "how far
+    # back to look") isn't a fact from the data — it can't appear in any tool RESULT,
+    # only in the call — but it's still a real, known-legitimate number the narrative
+    # should be allowed to mention (e.g. "in the last 30 minutes") without that being
+    # treated as an unbacked hallucination. Found live 2026-08-17: this was previously
+    # rejected every time, since Figure Checker only ever looked at tool results.
+    for v in args.values():
+        if isinstance(v, (int, float)) and not isinstance(v, bool):
+            tool_arg_numbers.add(float(v))
+
+
+async def _run_tool_calling_session_stream(db: Session, messages: list[dict]) -> AsyncIterator[dict]:
+    """Same bounded ReAct loop as before, but yields a step event after every tool call
+    and every tool result instead of only returning at the end — this is what lets the
+    streaming endpoint show the agent's actual process as it happens, rather than a
+    lossy after-the-fact summary. Always ends with a "type": "done" event carrying
+    exactly what this function used to return as a tuple, so the non-streaming wrapper
+    below can stay a trivial drain."""
     tool_results: dict = {}
+    tool_arg_numbers: set[float] = set()
     for _ in range(MAX_TOOL_ITERATIONS):
-        message = await call_llm_with_fallback(messages, tools=agent_tools.TOOL_SCHEMAS)
+        raw_message = await call_llm_with_fallback(messages, tools=agent_tools.TOOL_SCHEMAS)
+        # Found live 2026-08-17: a reasoning-capable provider (NVIDIA's nemotron) returns
+        # extra fields (e.g. "reasoning_content") alongside the standard OpenAI shape.
+        # call_llm_with_fallback retries from the TOP of the provider chain on every loop
+        # iteration, not just the one that succeeded last — so appending that raw message
+        # verbatim poisons the conversation history for every later call, including ones
+        # routed to a different, stricter provider. Confirmed live: Groq then rejects the
+        # entire request with 400 "'messages.N': property 'reasoning_content' is
+        # unsupported", turning one reasoning-model turn into an all-providers-failed
+        # session. Keeping only the fields every provider's API actually expects fixes it
+        # at the one place this dict re-enters shared history, not per-provider.
+        message = {k: v for k, v in raw_message.items() if k in ("role", "content", "tool_calls")}
         messages.append(message)
 
         tool_calls = message.get("tool_calls")
         if not tool_calls:
-            return parse_final_answer(message.get("content")), tool_results, messages
+            yield {
+                "type": "done", "llm_output": parse_final_answer(message.get("content")),
+                "tool_results": tool_results, "messages": messages, "tool_arg_numbers": tool_arg_numbers,
+            }
+            return
 
         for tc in tool_calls:
             name = tc.get("function", {}).get("name", "")
@@ -72,14 +105,39 @@ async def _run_tool_calling_session(db: Session, messages: list[dict]) -> tuple[
                 args = json.loads(tc.get("function", {}).get("arguments") or "{}")
             except json.JSONDecodeError:
                 args = {}
+            # A provider can legally return the literal JSON string "null" for a
+            # no-parameter call — json.loads("null") is Python None, not {}. Guarding
+            # here (not just in _record_tool_arg_numbers) protects every downstream
+            # consumer of `args` (call_tool, _record_tool_result) with one fix, not one
+            # per call site. Found live 2026-08-17 as a real crash, not a hypothetical.
+            if not isinstance(args, dict):
+                args = {}
+            _record_tool_arg_numbers(tool_arg_numbers, args)
+            yield {"type": "tool_call", "tool": name, "args": args}
             result = agent_tools.call_tool(db, name, args)
             _record_tool_result(tool_results, name, args, result)
             messages.append(
                 {"role": "tool", "tool_call_id": tc.get("id", name), "content": json.dumps(result, default=str)}
             )
+            yield {"type": "tool_result", "tool": name, "result": result}
 
     logger.warning("Tool-calling session hit MAX_TOOL_ITERATIONS=%d without a final answer", MAX_TOOL_ITERATIONS)
-    return {"claims": [], "narrative": ""}, tool_results, messages
+    yield {
+        "type": "done", "llm_output": {"claims": [], "narrative": ""},
+        "tool_results": tool_results, "messages": messages, "tool_arg_numbers": tool_arg_numbers,
+    }
+
+
+async def _run_tool_calling_session(db: Session, messages: list[dict]) -> tuple[dict, dict, list[dict], set[float]]:
+    """Non-streaming wrapper over _run_tool_calling_session_stream — kept so run_briefing()
+    (used by the scheduled loop and the blocking /api/briefing endpoint) is completely
+    unaffected by the streaming path existing underneath it. Drains the generator and
+    returns its final "done" event as the same (parsed answer, tool_results, messages,
+    tool_arg_numbers) tuple this always returned."""
+    async for event in _run_tool_calling_session_stream(db, messages):
+        if event["type"] == "done":
+            return event["llm_output"], event["tool_results"], event["messages"], event["tool_arg_numbers"]
+    raise AssertionError("_run_tool_calling_session_stream ended without a 'done' event")
 
 
 def _log_check_failure(stage: str, llm_output: dict, result: CheckResult) -> None:
@@ -110,12 +168,20 @@ async def _full_raw_dump(db: Session) -> dict:
     return tool_results
 
 
-async def run_briefing(db: Session, question: str | None = None, conversation_id: str | None = None) -> BriefingResponse:
+async def run_briefing(
+    db: Session,
+    question: str | None = None,
+    conversation_id: str | None = None,
+    trigger_source: str = "coordinator_query",
+) -> BriefingResponse:
     """question=None generates a general briefing; a real coordinator question routes
     the same tool-calling session toward answering it specifically. Passing back a
     conversation_id from a prior response continues that thread (the agent sees the
     earlier exchange); omitting it starts fresh. A conversation_id is always returned so
-    a caller can opt into continuity later even if it didn't ask for it up front."""
+    a caller can opt into continuity later even if it didn't ask for it up front.
+    trigger_source records which of the three real invocation modes produced this
+    result — always "coordinator_query" except scheduled_briefing_loop's one call site,
+    which overrides it to "scheduled"."""
     try:
         existing = get_conversation(db, conversation_id) if conversation_id else None
         if existing is not None and existing.messages:
@@ -124,7 +190,7 @@ async def run_briefing(db: Session, question: str | None = None, conversation_id
             messages = build_initial_messages(question)
         conversation_id = conversation_id or _new_conversation_id()
 
-        llm_output, tool_results, final_messages = await _run_tool_calling_session(db, messages)
+        llm_output, tool_results, final_messages, tool_arg_numbers = await _run_tool_calling_session(db, messages)
 
         if "clarifying_question" in llm_output:
             save_conversation(db, conversation_id, final_messages)
@@ -133,17 +199,17 @@ async def run_briefing(db: Session, question: str | None = None, conversation_id
                 tool_results={}, conversation_id=conversation_id,
             )
 
-        result = check(llm_output, tool_results)
+        result = check(llm_output, tool_results, tool_arg_numbers)
         if result.passed:
-            save_briefing_record(db, llm_output["narrative"], llm_output["claims"])
+            save_briefing_record(db, llm_output["narrative"], llm_output["claims"], trigger_source=trigger_source)
             save_conversation(db, conversation_id, final_messages)
             return BriefingResponse(
                 mode="briefed", claims=llm_output["claims"], narrative=llm_output["narrative"],
-                tool_results=tool_results, conversation_id=conversation_id,
+                tool_results=tool_results, trigger_source=trigger_source, conversation_id=conversation_id,
             )
         _log_check_failure("first", llm_output, result)
 
-        retry_output, retry_tool_results, retry_messages = await _run_tool_calling_session(
+        retry_output, retry_tool_results, retry_messages, retry_tool_arg_numbers = await _run_tool_calling_session(
             db, build_retry_messages(question, result)
         )
         if "clarifying_question" in retry_output:
@@ -153,19 +219,122 @@ async def run_briefing(db: Session, question: str | None = None, conversation_id
                 tool_results={}, conversation_id=conversation_id,
             )
 
-        result2 = check(retry_output, retry_tool_results)
+        result2 = check(retry_output, retry_tool_results, retry_tool_arg_numbers)
         if result2.passed:
-            save_briefing_record(db, retry_output["narrative"], retry_output["claims"])
+            save_briefing_record(db, retry_output["narrative"], retry_output["claims"], trigger_source=trigger_source)
             save_conversation(db, conversation_id, retry_messages)
             return BriefingResponse(
                 mode="briefed", claims=retry_output["claims"], narrative=retry_output["narrative"],
-                tool_results=retry_tool_results, conversation_id=conversation_id,
+                tool_results=retry_tool_results, trigger_source=trigger_source, conversation_id=conversation_id,
             )
         _log_check_failure("retry", retry_output, result2)
     except AllModelsFailedError:
         conversation_id = conversation_id or _new_conversation_id()
 
-    return BriefingResponse(mode="raw", tool_results=await _full_raw_dump(db), conversation_id=conversation_id)
+    return BriefingResponse(
+        mode="raw", tool_results=await _full_raw_dump(db),
+        trigger_source=trigger_source, conversation_id=conversation_id,
+    )
+
+
+async def run_briefing_stream(
+    db: Session, question: str | None = None, conversation_id: str | None = None, persist: bool = True,
+) -> AsyncIterator[dict]:
+    """Streaming counterpart to run_briefing() for the coordinator-query mode only — the
+    scheduled loop has no live viewer to stream to and calls run_briefing() directly.
+    Re-implements the same try -> Figure-Check -> retry-once -> raw-fallback policy as
+    run_briefing(), but yields step/status events instead of returning one final
+    BriefingResponse. Deliberately NOT sharing run_briefing()'s code path (only the
+    underlying _run_tool_calling_session_stream primitive is shared) — this keeps a bug
+    in this newer, higher-risk streaming path structurally unable to reach the blocking
+    /api/briefing endpoint, which stays available as a fallback if streaming misbehaves.
+
+    persist=False skips both save_briefing_record and save_conversation — used by the
+    reliability-check diagnostic (routers/diagnostics.py), which calls this real pipeline
+    repeatedly on demand and must not flood the dashboard's "last briefing" state or the
+    conversation store with test runs."""
+    try:
+        existing = get_conversation(db, conversation_id) if conversation_id else None
+        if existing is not None and existing.messages:
+            messages = build_continued_messages(existing.messages, question or "Continue with a general update.")
+        else:
+            messages = build_initial_messages(question)
+        conversation_id = conversation_id or _new_conversation_id()
+
+        llm_output = tool_results = final_messages = tool_arg_numbers = None
+        async for event in _run_tool_calling_session_stream(db, messages):
+            if event["type"] != "done":
+                yield event
+                continue
+            llm_output, tool_results, final_messages, tool_arg_numbers = (
+                event["llm_output"], event["tool_results"], event["messages"], event["tool_arg_numbers"]
+            )
+
+        if "clarifying_question" in llm_output:
+            if persist:
+                save_conversation(db, conversation_id, final_messages)
+            yield {
+                "type": "clarifying", "clarifying_question": llm_output["clarifying_question"],
+                "conversation_id": conversation_id,
+            }
+            return
+
+        yield {"type": "checking"}
+        result = check(llm_output, tool_results, tool_arg_numbers)
+        if result.passed:
+            if persist:
+                save_briefing_record(db, llm_output["narrative"], llm_output["claims"], trigger_source="coordinator_query")
+                save_conversation(db, conversation_id, final_messages)
+            yield {
+                "type": "final", "mode": "briefed", "claims": llm_output["claims"],
+                "narrative": llm_output["narrative"], "tool_results": tool_results,
+                "trigger_source": "coordinator_query", "conversation_id": conversation_id,
+            }
+            return
+        _log_check_failure("first", llm_output, result)
+        yield {"type": "check_failed", "reason": result.failure_reason}
+
+        yield {"type": "retrying"}
+        retry_output = retry_tool_results = retry_messages = retry_tool_arg_numbers = None
+        async for event in _run_tool_calling_session_stream(db, build_retry_messages(question, result)):
+            if event["type"] != "done":
+                yield event
+                continue
+            retry_output = event["llm_output"]
+            retry_tool_results = event["tool_results"]
+            retry_messages = event["messages"]
+            retry_tool_arg_numbers = event["tool_arg_numbers"]
+
+        if "clarifying_question" in retry_output:
+            if persist:
+                save_conversation(db, conversation_id, retry_messages)
+            yield {
+                "type": "clarifying", "clarifying_question": retry_output["clarifying_question"],
+                "conversation_id": conversation_id,
+            }
+            return
+
+        yield {"type": "checking"}
+        result2 = check(retry_output, retry_tool_results, retry_tool_arg_numbers)
+        if result2.passed:
+            if persist:
+                save_briefing_record(db, retry_output["narrative"], retry_output["claims"], trigger_source="coordinator_query")
+                save_conversation(db, conversation_id, retry_messages)
+            yield {
+                "type": "final", "mode": "briefed", "claims": retry_output["claims"],
+                "narrative": retry_output["narrative"], "tool_results": retry_tool_results,
+                "trigger_source": "coordinator_query", "conversation_id": conversation_id,
+            }
+            return
+        _log_check_failure("retry", retry_output, result2)
+    except AllModelsFailedError as exc:
+        conversation_id = conversation_id or _new_conversation_id()
+        yield {"type": "error", "message": str(exc)}
+
+    yield {
+        "type": "final", "mode": "raw", "tool_results": await _full_raw_dump(db),
+        "trigger_source": "coordinator_query", "conversation_id": conversation_id,
+    }
 
 
 async def scheduled_briefing_loop() -> None:
@@ -177,6 +346,6 @@ async def scheduled_briefing_loop() -> None:
         await asyncio.sleep(config.SCHEDULED_BRIEFING_INTERVAL_SECONDS)
         try:
             with SessionLocal() as db:
-                await run_briefing(db)
+                await run_briefing(db, trigger_source="scheduled")
         except Exception:
             logger.exception("Scheduled briefing failed")

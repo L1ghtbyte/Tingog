@@ -1,7 +1,21 @@
-from datetime import datetime
-from typing import Any, Literal
+from datetime import datetime, timezone
+from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, PlainSerializer
+
+
+def _as_utc_iso(dt: datetime) -> str:
+    """DB values are naive UTC (see timeutil.utcnow's docstring — deliberately naive
+    everywhere internally, to avoid aware/naive comparison errors). A naive ISO string
+    with no "Z"/offset gets misread as LOCAL time by JavaScript's `new Date(...)` — a
+    real, ~8-hour-off bug for any browser in a UTC+8 timezone (confirmed live: a press
+    from moments ago displayed as "7h 59m ago"). Attaching the UTC designator only here,
+    at the API/JSON boundary, fixes that without touching any internal naive-datetime
+    storage or comparison logic."""
+    return dt.replace(tzinfo=timezone.utc).isoformat()
+
+
+UTCDatetime = Annotated[datetime, PlainSerializer(_as_utc_iso, return_type=str)]
 
 
 class EventOut(BaseModel):
@@ -12,7 +26,7 @@ class EventOut(BaseModel):
     combo_buttons: list[str] | None
     press_type: str
     device_timestamp: int | None
-    received_at: datetime
+    received_at: UTCDatetime
     is_simulated: bool
 
 
@@ -28,7 +42,7 @@ class PurokOut(BaseModel):
     longitude: float
     is_simulated: bool
     baseline_vulnerable_count: int
-    last_event_at: datetime | None
+    last_event_at: UTCDatetime | None
     active_needs: list[str]
     distinct_buttons_15min: int
     status: str
@@ -43,7 +57,7 @@ class DeliveryRecordOut(BaseModel):
     items: list[str]
     delivered_by: str | None
     note: str | None
-    delivered_at: datetime
+    delivered_at: UTCDatetime
 
 
 class DeliveryCreateIn(BaseModel):
@@ -82,6 +96,7 @@ class BriefingResponse(BaseModel):
     narrative: str | None = None
     clarifying_question: str | None = None
     tool_results: dict[str, Any]
+    trigger_source: Literal["coordinator_query", "scheduled"] | None = None
     conversation_id: str | None = None
 
 
@@ -95,7 +110,8 @@ class LastBriefingOut(BaseModel):
 
     narrative: str
     claims: list[dict[str, Any]]
-    created_at: datetime
+    trigger_source: Literal["coordinator_query", "scheduled"]
+    created_at: UTCDatetime
 
 
 class ClusterOut(BaseModel):
@@ -123,7 +139,7 @@ class RecentEventOut(BaseModel):
     button: str
     combo_buttons: list[str] | None
     press_type: str
-    received_at: datetime
+    received_at: UTCDatetime
     is_simulated: bool
 
 
@@ -133,7 +149,7 @@ class EscalationOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
-    created_at: datetime
+    created_at: UTCDatetime
     kind: str
     purok_id: int | None
     purok_name: str

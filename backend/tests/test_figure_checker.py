@@ -134,6 +134,168 @@ def test_claim_with_true_sibling_field_passes():
     assert result.passed
 
 
+def test_claim_with_differently_named_sibling_field_passes():
+    # Regression test: found live 2026-08-17 — a real claim labeled a sibling fact
+    # "purok": "Purok 4" while the actual record stores it as "purok_name". The claimed
+    # value was exactly right; only the model's own label for it differed from the
+    # backend's internal field name. This must not be treated as a mismatch.
+    tool_results = {
+        "get_high_severity": [
+            {"purok_id": 4, "purok_name": "Purok 4", "severity": "high", "reasons": ["no contact in over 6h"]}
+        ]
+    }
+    llm_output = {
+        "claims": [
+            {
+                "source_tool": "get_high_severity",
+                "source_field": "[0].reasons",
+                "purok": "Purok 4",
+                "reasons": ["no contact in over 6h"],
+            }
+        ],
+        "narrative": "Purok 4: no contact in over 6h.",
+    }
+    result = check(llm_output, tool_results)
+    assert result.passed
+
+
+def test_claim_with_differently_named_and_wrong_sibling_field_still_fails():
+    # The leniency above must not become a loophole — a genuinely wrong sibling value,
+    # under any field name, should still be caught.
+    tool_results = {
+        "get_high_severity": [
+            {"purok_id": 4, "purok_name": "Purok 4", "severity": "high", "reasons": ["no contact in over 6h"]}
+        ]
+    }
+    llm_output = {
+        "claims": [
+            {
+                "source_tool": "get_high_severity",
+                "source_field": "[0].reasons",
+                "purok": "Purok 9",
+                "reasons": ["no contact in over 6h"],
+            }
+        ],
+        "narrative": "Purok 9: no contact in over 6h.",
+    }
+    result = check(llm_output, tool_results)
+    assert not result.passed
+    assert result.failure_reason == "claim_mismatch"
+
+
+def test_narrative_number_backed_by_tool_arg_passes():
+    # Regression test: found live 2026-08-17 — a real narrative said "in the last 30
+    # minutes", where 30 was a query parameter the model chose for get_recent_activity,
+    # not a value any tool ever returned. That's still a real, known-legitimate number,
+    # not a hallucination — the checker was rejecting it because it only ever looked at
+    # tool RESULTS, never tool CALL arguments.
+    tool_results = {"get_recent_activity": {"total_events": 3}}
+    llm_output = {
+        "claims": [{"value": 3, "source_tool": "get_recent_activity", "source_field": "total_events"}],
+        "narrative": "3 events in the last 30 minutes.",
+    }
+    result = check(llm_output, tool_results, tool_arg_numbers={30.0})
+    assert result.passed
+
+
+def test_narrative_number_not_backed_by_anything_still_fails():
+    # The leniency above must not become a blanket pass — a number that's neither a
+    # claim value nor a known tool argument should still be rejected.
+    tool_results = {"get_recent_activity": {"total_events": 3}}
+    llm_output = {
+        "claims": [{"value": 3, "source_tool": "get_recent_activity", "source_field": "total_events"}],
+        "narrative": "3 events in the last 45 minutes.",
+    }
+    result = check(llm_output, tool_results, tool_arg_numbers={30.0})
+    assert not result.passed
+    assert result.failure_reason == "unbacked_narrative_number"
+
+
+def test_claim_with_paraphrased_sibling_value_passes():
+    # Regression test: found live 2026-08-17 — a real claim added 'reason': 'high
+    # severity' as a sibling fact where the actual record just has severity: 'high'. A
+    # reasonable paraphrase, not a factual error.
+    tool_results = {
+        "get_high_severity": [{"purok_id": 4, "purok_name": "Purok 4", "severity": "high"}]
+    }
+    llm_output = {
+        "claims": [
+            {
+                "source_tool": "get_high_severity",
+                "source_field": "[0].purok_name",
+                "value": "Purok 4",
+                "reason": "high severity",
+            }
+        ],
+        "narrative": "Purok 4 is high severity.",
+    }
+    result = check(llm_output, tool_results)
+    assert result.passed
+
+
+def test_claim_with_wrong_paraphrased_sibling_value_still_fails():
+    # The paraphrase leniency above must not become a loophole — a genuinely wrong
+    # value, even phrased as a "paraphrase", should still be caught.
+    tool_results = {
+        "get_high_severity": [{"purok_id": 4, "purok_name": "Purok 4", "severity": "high"}]
+    }
+    llm_output = {
+        "claims": [
+            {
+                "source_tool": "get_high_severity",
+                "source_field": "[0].purok_name",
+                "value": "Purok 4",
+                "reason": "low severity",
+            }
+        ],
+        "narrative": "Purok 4 is low severity.",
+    }
+    result = check(llm_output, tool_results)
+    assert not result.passed
+    assert result.failure_reason == "claim_mismatch"
+
+
+def test_claim_with_tool_arg_sibling_field_passes():
+    # Regression test: found live 2026-08-17 — a real claim bundled the tool-call's own
+    # query parameter as a sibling fact: {"value": 2, "window_minutes": 30}. 30 is never
+    # part of any tool RESULT (it's an input, not returned data), so no amount of
+    # searching the record would ever find it — this needs the known tool_arg_numbers.
+    tool_results = {"get_recent_activity": {"by_need_type": {"TUBIG": 2}}}
+    llm_output = {
+        "claims": [
+            {
+                "source_tool": "get_recent_activity",
+                "source_field": "by_need_type.TUBIG",
+                "value": 2,
+                "window_minutes": 30,
+            }
+        ],
+        "narrative": "2 TUBIG reports in the last 30 minutes.",
+    }
+    result = check(llm_output, tool_results, tool_arg_numbers={30.0})
+    assert result.passed
+
+
+def test_claim_with_wrong_number_disguised_as_tool_arg_still_fails():
+    # The leniency above must not become "any number passes" — a genuinely wrong
+    # sibling number that ISN'T a known tool argument should still be rejected.
+    tool_results = {"get_recent_activity": {"by_need_type": {"TUBIG": 2}}}
+    llm_output = {
+        "claims": [
+            {
+                "source_tool": "get_recent_activity",
+                "source_field": "by_need_type.TUBIG",
+                "value": 2,
+                "window_minutes": 999,
+            }
+        ],
+        "narrative": "2 TUBIG reports in the last 999 minutes.",
+    }
+    result = check(llm_output, tool_results, tool_arg_numbers={30.0})
+    assert not result.passed
+    assert result.failure_reason == "claim_mismatch"
+
+
 def test_claim_with_false_sibling_field_still_fails():
     # The fallback above must not become a loophole — a genuinely wrong sibling field
     # should still be caught.

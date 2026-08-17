@@ -44,6 +44,11 @@ the fact) and "source_field" (a path into that tool's result, e.g. "total_events
 directly, there is no wrapping object to name). Include whatever other fields describe \
 the fact being claimed (e.g. "value", or "purok"/"hours", or "puroks"/"need_type"/\
 "window_minutes").
+- get_purok is different from every other tool: its result is a dict KEYED BY PUROK ID \
+(e.g. {"4": {"status": "unknown", "severity": "high", ...}}), not one flat record. \
+source_field for anything from get_purok MUST include which purok_id, e.g. \
+"[4].status" or "[4].severity" — never just "status" on its own, since that would be \
+ambiguous about which purok you mean.
 - "narrative": a short paragraph built ONLY from the claims above. Every number \
 appearing in the narrative must also appear in a claim.
 Respond with ONLY that JSON object once you're done calling tools — no extra text \

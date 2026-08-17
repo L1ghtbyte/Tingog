@@ -4,8 +4,8 @@ from app.crud import get_conversation, get_latest_briefing_record, save_briefing
 def test_briefing_record_save_and_retrieve_latest(db):
     assert get_latest_briefing_record(db) is None
 
-    save_briefing_record(db, "First narrative.", [{"source_tool": "x", "source_field": "y", "value": 1}])
-    save_briefing_record(db, "Second, more recent narrative.", [])
+    save_briefing_record(db, "First narrative.", [{"source_tool": "x", "source_field": "y", "value": 1}], trigger_source="coordinator_query")
+    save_briefing_record(db, "Second, more recent narrative.", [], trigger_source="scheduled")
 
     latest = get_latest_briefing_record(db)
     assert latest.narrative == "Second, more recent narrative."
