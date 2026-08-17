@@ -289,24 +289,19 @@ function ChatTurnBlock({
                 </p>
             )}
 
-            {/* Process trace — expandable/collapsible per turn, so a long back-and-forth
-                doesn't force every past turn's full trace to stay on screen. */}
-            {turn.steps.length > 0 && (
+            {/* While actively streaming, the process trace IS the primary content — there's
+                no answer yet, so it earns the prominent boxed treatment. */}
+            {turn.isStreaming && turn.steps.length > 0 && (
                 <div className="flex flex-col bg-background/50 border border-outline-variant p-2.5">
-                    <button
-                        onClick={onToggleExpand}
-                        className="flex items-center justify-between gap-2 text-[10px] font-label-caps font-semibold tracking-[0.08em] text-on-surface-variant w-full text-left"
-                    >
-                        <span>{turn.isStreaming ? "Working through the real data..." : `${pluralize(toolCallCount, "tool call")} — process`}</span>
-                        <span className="material-symbols-outlined text-[14px] shrink-0">{isExpanded ? "expand_less" : "expand_more"}</span>
-                    </button>
-                    {isExpanded && (
-                        <div className="mt-2">
-                            {displaySteps.map((step, i) => (
-                                <TimelineRow key={step.key} step={step} isLast={i === displaySteps.length - 1} isStreaming={turn.isStreaming} />
-                            ))}
-                        </div>
-                    )}
+                    <div className="flex items-center gap-2 text-[10px] font-label-caps font-semibold tracking-[0.08em] text-on-surface-variant">
+                        <span className="material-symbols-outlined text-[13px] animate-spin">progress_activity</span>
+                        Working through the real data...
+                    </div>
+                    <div className="mt-2">
+                        {displaySteps.map((step, i) => (
+                            <TimelineRow key={step.key} step={step} isLast={i === displaySteps.length - 1} isStreaming />
+                        ))}
+                    </div>
                 </div>
             )}
 
@@ -340,6 +335,28 @@ function ChatTurnBlock({
             )}
             {turn.terminalEvent?.type === "error" && (
                 <div className="text-[10px] text-red-400">{turn.terminalEvent.message}</div>
+            )}
+
+            {/* Once there's a real answer, the process trace steps back into a small,
+                secondary disclosure below it — it explains HOW, the answer above is WHAT
+                matters, and shouldn't have to compete with a bordered box for attention. */}
+            {!turn.isStreaming && turn.steps.length > 0 && (
+                <div>
+                    <button
+                        onClick={onToggleExpand}
+                        className="flex items-center gap-1 text-[10px] text-on-surface-variant/70 hover:text-on-surface-variant"
+                    >
+                        <span className="material-symbols-outlined text-[12px]">{isExpanded ? "expand_less" : "chevron_right"}</span>
+                        {pluralize(toolCallCount, "tool call")}
+                    </button>
+                    {isExpanded && (
+                        <div className="mt-1.5 pl-2 border-l border-outline-variant/40">
+                            {displaySteps.map((step, i) => (
+                                <TimelineRow key={step.key} step={step} isLast={i === displaySteps.length - 1} isStreaming={false} />
+                            ))}
+                        </div>
+                    )}
+                </div>
             )}
         </div>
     );
