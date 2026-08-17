@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-import { MapContainer, Marker, Polyline, Popup, TileLayer, Tooltip, useMap } from "react-leaflet";
+import { MapContainer, Marker, Polyline, Popup, TileLayer, useMap } from "react-leaflet";
 
 import { getPurokDetail } from "../api/client";
 import type { PurokDetailOut, PurokOut } from "../api/types";
@@ -63,6 +63,28 @@ function createMarkerIcon(purok: PurokOut, isRecentlyPressed: boolean): L.DivIco
         </div>
     `;
     return L.divIcon({ html, className: "tingog-marker-icon", iconSize: [16, 16], iconAnchor: [8, 8] });
+}
+
+// A Leaflet `Tooltip` attached to a `Polyline` (direction="center") doesn't reliably
+// anchor to the line's actual midpoint — found live 2026-08-17, the label rendered
+// visibly displaced from the line it was meant to describe. Rendering the label as its
+// own point Marker at a manually-computed midpoint is fully deterministic instead:
+// iconSize [0,0] plus a CSS translate(-50%,-50%) on the inner div centers the
+// auto-sized label exactly on that point, regardless of its rendered text width.
+function createClusterLabelIcon(cluster: { need_type: string; puroks: string[]; confidence: number }): L.DivIcon {
+    const html = `
+        <div style="transform: translate(-50%, -50%);" class="whitespace-nowrap rounded-sm bg-amber-500 px-2 py-1 text-[11px] font-bold text-black shadow-lg">
+            ${cluster.need_type} cluster — ${cluster.puroks.length} puroks, ${cluster.confidence}% confidence
+        </div>
+    `;
+    return L.divIcon({ html, className: "bg-transparent border-0", iconSize: [0, 0] });
+}
+
+function clusterMidpoint(points: [number, number][]): [number, number] {
+    return [
+        points.reduce((sum, p) => sum + p[0], 0) / points.length,
+        points.reduce((sum, p) => sum + p[1], 0) / points.length,
+    ];
 }
 
 // English gloss shown alongside each Bisaya need-button name — local relevance
@@ -335,13 +357,14 @@ export function TacticalMap({ filter, onFilterChange, isDarkMode, mapStyle }: Ta
 
                 {/* Label stays pinned to the cluster's actual map position (not a fixed
                     screen position) — moves/pans with the map, same as everything else
-                    spatial here, just bigger and bolder than before for visibility. */}
+                    spatial here. Rendered as its own Marker at a computed midpoint (see
+                    createClusterLabelIcon) rather than a Polyline Tooltip, which didn't
+                    reliably anchor to the line itself. */}
                 {clusterLines.map(({ cluster, points }) => (
-                    <Polyline key={cluster.cluster_id} positions={points} pathOptions={{ color: "#F59E0B", weight: 4, dashArray: "8 6", opacity: 0.9 }}>
-                        <Tooltip permanent direction="center" className="!bg-amber-500 !text-black !border-0 !text-[11px] !font-bold !px-2 !py-1">
-                            {cluster.need_type} cluster — {cluster.puroks.length} puroks, {cluster.confidence}% confidence
-                        </Tooltip>
-                    </Polyline>
+                    <Fragment key={cluster.cluster_id}>
+                        <Polyline positions={points} pathOptions={{ color: "#F59E0B", weight: 4, dashArray: "8 6", opacity: 0.9 }} />
+                        <Marker position={clusterMidpoint(points)} icon={createClusterLabelIcon(cluster)} interactive={false} />
+                    </Fragment>
                 ))}
 
                 {filteredPuroks.map((p) => {
