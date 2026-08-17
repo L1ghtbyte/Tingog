@@ -17,7 +17,7 @@ from app.crud import get_or_create_real_purok
 from app.database import SessionLocal, init_db
 from app.ingestion import poll_esp32_loop, severity_sweep_loop
 from app.ingestion_serial import serial_listener_loop
-from app.routers import admin, briefing, briefing_stream, clusters, diagnostics, escalations, events, puroks
+from app.routers import admin, briefing, briefing_stream, clusters, escalations, events, puroks
 
 REAL_DEVICE_ID = "1"
 
@@ -62,7 +62,6 @@ app.add_middleware(
 app.include_router(puroks.router)
 app.include_router(briefing.router)
 app.include_router(briefing_stream.router)
-app.include_router(diagnostics.router)
 app.include_router(admin.router)
 app.include_router(escalations.router)
 app.include_router(clusters.router)

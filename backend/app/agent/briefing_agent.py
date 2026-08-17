@@ -321,7 +321,7 @@ async def run_briefing(
 
 
 async def run_briefing_stream(
-    db: Session, question: str | None = None, conversation_id: str | None = None, persist: bool = True,
+    db: Session, question: str | None = None, conversation_id: str | None = None,
 ) -> AsyncIterator[dict]:
     """Streaming counterpart to run_briefing() for the coordinator-query mode only — the
     scheduled loop has no live viewer to stream to and calls run_briefing() directly.
@@ -330,12 +330,7 @@ async def run_briefing_stream(
     BriefingResponse. Deliberately NOT sharing run_briefing()'s code path (only the
     underlying _run_tool_calling_session_stream primitive is shared) — this keeps a bug
     in this newer, higher-risk streaming path structurally unable to reach the blocking
-    /api/briefing endpoint, which stays available as a fallback if streaming misbehaves.
-
-    persist=False skips both save_briefing_record and save_conversation — used by the
-    reliability-check diagnostic (routers/diagnostics.py), which calls this real pipeline
-    repeatedly on demand and must not flood the dashboard's "last briefing" state or the
-    conversation store with test runs."""
+    /api/briefing endpoint, which stays available as a fallback if streaming misbehaves."""
     try:
         existing = get_conversation(db, conversation_id) if conversation_id else None
         if existing is not None and existing.messages:
@@ -354,8 +349,7 @@ async def run_briefing_stream(
             )
 
         if "clarifying_question" in llm_output:
-            if persist:
-                save_conversation(db, conversation_id, final_messages)
+            save_conversation(db, conversation_id, final_messages)
             yield {
                 "type": "clarifying", "clarifying_question": llm_output["clarifying_question"],
                 "conversation_id": conversation_id,
@@ -365,12 +359,11 @@ async def run_briefing_stream(
         yield {"type": "checking"}
         result = check(llm_output, tool_results, tool_arg_numbers)
         if result.passed:
-            if persist:
-                save_briefing_record(
-                    db, llm_output["narrative"], llm_output["claims"], trigger_source="coordinator_query",
-                    assessment=llm_output.get("assessment"),
-                )
-                save_conversation(db, conversation_id, final_messages)
+            save_briefing_record(
+                db, llm_output["narrative"], llm_output["claims"], trigger_source="coordinator_query",
+                assessment=llm_output.get("assessment"),
+            )
+            save_conversation(db, conversation_id, final_messages)
             yield {
                 "type": "final", "mode": "briefed", "claims": llm_output["claims"],
                 "narrative": llm_output["narrative"], "assessment": llm_output.get("assessment"),
@@ -393,8 +386,7 @@ async def run_briefing_stream(
             retry_tool_arg_numbers = event["tool_arg_numbers"]
 
         if "clarifying_question" in retry_output:
-            if persist:
-                save_conversation(db, conversation_id, retry_messages)
+            save_conversation(db, conversation_id, retry_messages)
             yield {
                 "type": "clarifying", "clarifying_question": retry_output["clarifying_question"],
                 "conversation_id": conversation_id,
@@ -404,12 +396,11 @@ async def run_briefing_stream(
         yield {"type": "checking"}
         result2 = check(retry_output, retry_tool_results, retry_tool_arg_numbers)
         if result2.passed:
-            if persist:
-                save_briefing_record(
-                    db, retry_output["narrative"], retry_output["claims"], trigger_source="coordinator_query",
-                    assessment=retry_output.get("assessment"),
-                )
-                save_conversation(db, conversation_id, retry_messages)
+            save_briefing_record(
+                db, retry_output["narrative"], retry_output["claims"], trigger_source="coordinator_query",
+                assessment=retry_output.get("assessment"),
+            )
+            save_conversation(db, conversation_id, retry_messages)
             yield {
                 "type": "final", "mode": "briefed", "claims": retry_output["claims"],
                 "narrative": retry_output["narrative"], "assessment": retry_output.get("assessment"),

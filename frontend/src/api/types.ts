@@ -150,23 +150,6 @@ export interface ConversationHistoryOut {
     updated_at: string;
 }
 
-// One event from GET /api/diagnostics/briefing-reliability (SSE). Mirrors
-// backend/app/routers/diagnostics.py's _reliability_stream() event shapes exactly.
-export type ReliabilityRunMode = "briefed" | "raw" | "clarifying" | "crashed" | "unknown";
-
-export type ReliabilityEvent =
-    | { type: "run_start"; run: number; total: number }
-    | {
-          type: "run_result";
-          run: number;
-          total: number;
-          mode: ReliabilityRunMode;
-          elapsed_seconds: number;
-          check_failed_count: number;
-          error: string | null;
-      }
-    | { type: "summary"; total: number; briefed: number; raw: number; other: number; avg_seconds: number };
-
 export interface DeliveryCreateIn {
     items: NeedButton[];
     delivered_by?: string;

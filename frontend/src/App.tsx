@@ -5,14 +5,12 @@ import { AISitRep } from './components/AISitRep';
 import { EscalationPanel } from './components/EscalationPanel';
 import { TacticalMap, type MapFilter } from './components/TacticalMap';
 import { PacketStream } from './components/PacketStream';
-import { ReliabilityPanel } from './components/ReliabilityPanel';
 
 import { TingogProvider, useTingog } from './context/TingogContext';
 
 function Dashboard() {
     const [isBriefingMinimized, setIsBriefingMinimized] = useState(false);
     const [isReportsMinimized, setIsReportsMinimized] = useState(false);
-    const [isReliabilityOpen, setIsReliabilityOpen] = useState(false);
     const [mapFilter, setMapFilter] = useState<MapFilter>('ALL');
     const [seenEscalationCount, setSeenEscalationCount] = useState(0);
     const [seenEventIds, setSeenEventIds] = useState<number[]>([]);
@@ -185,20 +183,6 @@ function Dashboard() {
                     </button>
                 </div>
 
-                {/* Reliability Check — runs the real agent pipeline live, N times, and shows
-                    each real pass/fail result in-app (see ReliabilityPanel.tsx). Not a
-                    presentation element; a verification tool left reachable at all times. */}
-                <div className="pointer-events-auto absolute bottom-4 left-4 z-50">
-                    <button
-                        type="button"
-                        onClick={() => setIsReliabilityOpen(true)}
-                        aria-label="Open AI reliability check"
-                        className="flex h-10 w-10 items-center justify-center rounded-full border border-outline-variant bg-surface-container/90 text-on-surface shadow-lg backdrop-blur-md transition-colors hover:border-primary hover:text-primary"
-                    >
-                        <span className="material-symbols-outlined text-lg">monitor_heart</span>
-                    </button>
-                </div>
-
                 {/* Focus Mode Toggle */}
                 <div className="pointer-events-auto absolute bottom-4 left-1/2 z-50 -translate-x-1/2">
                     <button
@@ -214,8 +198,6 @@ function Dashboard() {
                     </button>
                 </div>
             </div>
-
-            {isReliabilityOpen && <ReliabilityPanel onClose={() => setIsReliabilityOpen(false)} />}
         </div>
     );
 }

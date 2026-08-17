@@ -60,14 +60,6 @@ export const getBriefingStreamUrl = (question?: string, conversationId?: string)
     return `${BASE_URL}/api/briefing/stream${query ? `?${query}` : ""}`;
 };
 
-// EventSource wants a plain URL, same reason as getBriefingStreamUrl above.
-export const getReliabilityCheckUrl = (runs = 5, question?: string) => {
-    const params = new URLSearchParams();
-    params.set("runs", String(runs));
-    if (question) params.set("question", question);
-    return `${BASE_URL}/api/diagnostics/briefing-reliability?${params.toString()}`;
-};
-
 export const logDelivery = (purokId: number, body: DeliveryCreateIn) =>
     apiPost<PurokDetailOut>(`/api/puroks/${purokId}/deliveries`, body);
 
