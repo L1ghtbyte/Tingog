@@ -371,6 +371,11 @@ export function AISitRep() {
                     history.turns.map((turn, i) => ({
                         id: `history-${i}`,
                         question: turn.question,
+                        // Only the conversation's own updated_at is available (no
+                        // per-turn timestamp is persisted) — real data, applied only to
+                        // the general-briefing (question=null) turns that actually show
+                        // it, same as the old single-narrative passive display did.
+                        ...(turn.question === null ? { createdAt: history.updated_at, triggerSource: "coordinator_query" as const } : {}),
                         steps: [],
                         terminalEvent:
                             turn.mode === "clarifying"
