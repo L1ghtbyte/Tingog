@@ -125,10 +125,13 @@ export type StreamEvent =
     | { type: "error"; message: string };
 
 // One replayed turn from GET /api/briefing/conversation/last. Mirrors
-// backend/app/schemas.py's ConversationTurnOut exactly.
+// backend/app/schemas.py's ConversationTurnOut exactly. `steps` only ever contains
+// tool_call/tool_result entries (checking/check_failed/retrying are never persisted —
+// see reconstruct_conversation_turns' docstring for why), a strict subset of StreamEvent.
 export interface ConversationTurnOut {
     question: string | null;
     mode: "briefed" | "clarifying";
+    steps: Extract<StreamEvent, { type: "tool_call" | "tool_result" }>[];
     narrative: string | null;
     claims: Record<string, unknown>[] | null;
     clarifying_question: string | null;

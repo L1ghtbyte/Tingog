@@ -178,19 +178,25 @@ async def _full_raw_dump(db: Session) -> dict:
 
 def reconstruct_conversation_turns(messages: list[dict]) -> list[dict]:
     """Replays a saved ConversationRecord's raw OpenAI-format message list into the same
-    turn shape the dashboard renders live — a coordinator's whole back-and-forth is real,
-    persisted data (save_conversation), not something that only exists in one browser
-    tab's memory until it's refreshed away. Used by GET /api/briefing/conversation/last
-    so the chat panel can show the full conversation again after a reload or restart,
-    not just the single last saved narrative.
+    turn shape the dashboard renders live, INCLUDING each turn's real tool_call/
+    tool_result trace — the raw messages already carry this (it's how the agent's own
+    memory works), so a past reload can show the real process, not just the final
+    narrative. A coordinator's whole back-and-forth is real, persisted data
+    (save_conversation), not something that only exists in one browser tab's memory
+    until it's refreshed away. Used by GET /api/briefing/conversation/last.
 
-    Only user/assistant turns matter for display — intermediate tool-call/tool-result
-    messages are working state a past reload doesn't need to replay (unlike a live
-    stream, which shows them as they happen). Synthetic user turns (the default
-    general-briefing/continuation text, and a retry's correction message) are recognized
-    and excluded — a coordinator never typed those themselves."""
+    Synthetic user turns (the default general-briefing/continuation text, and a retry's
+    correction message) are recognized and excluded — a coordinator never typed those
+    themselves. Note: if a turn needed a retry to pass the Figure Checker, only the
+    attempt that actually succeeded is saved at all (build_retry_messages starts a fresh
+    session, not a continuation) — so a replayed trace shows the tool calls behind the
+    delivered answer, not an invisible failed first attempt, which matches what was ever
+    actually persisted."""
     turns: list[dict] = []
     pending_question: str | None = None
+    current_steps: list[dict] = []
+    tool_call_names: dict[str, str] = {}
+
     for message in messages:
         role = message.get("role")
         if role == "user":
@@ -198,19 +204,41 @@ def reconstruct_conversation_turns(messages: list[dict]) -> list[dict]:
             if content.startswith(RETRY_CORRECTION_PREFIX):
                 continue
             pending_question = None if content in (DEFAULT_GENERAL_BRIEFING_TEXT, DEFAULT_CONTINUATION_TEXT) else content
-        elif role == "assistant" and not message.get("tool_calls"):
-            parsed = parse_final_answer(message.get("content"))
-            if "clarifying_question" in parsed:
-                turns.append({
-                    "question": pending_question, "mode": "clarifying",
-                    "narrative": None, "claims": None, "clarifying_question": parsed["clarifying_question"],
-                })
+        elif role == "assistant":
+            tool_calls = message.get("tool_calls")
+            if tool_calls:
+                for tc in tool_calls:
+                    name = tc.get("function", {}).get("name", "")
+                    tc_id = tc.get("id", name)
+                    try:
+                        args = json.loads(tc.get("function", {}).get("arguments") or "{}")
+                    except json.JSONDecodeError:
+                        args = {}
+                    if not isinstance(args, dict):
+                        args = {}
+                    tool_call_names[tc_id] = name
+                    current_steps.append({"type": "tool_call", "tool": name, "args": args})
             else:
-                turns.append({
-                    "question": pending_question, "mode": "briefed",
-                    "narrative": parsed.get("narrative"), "claims": parsed.get("claims"), "clarifying_question": None,
-                })
-            pending_question = None
+                parsed = parse_final_answer(message.get("content"))
+                if "clarifying_question" in parsed:
+                    turns.append({
+                        "question": pending_question, "mode": "clarifying", "steps": current_steps,
+                        "narrative": None, "claims": None, "clarifying_question": parsed["clarifying_question"],
+                    })
+                else:
+                    turns.append({
+                        "question": pending_question, "mode": "briefed", "steps": current_steps,
+                        "narrative": parsed.get("narrative"), "claims": parsed.get("claims"), "clarifying_question": None,
+                    })
+                pending_question = None
+                current_steps = []
+        elif role == "tool":
+            tc_id = message.get("tool_call_id", "")
+            try:
+                result = json.loads(message.get("content") or "null")
+            except json.JSONDecodeError:
+                result = message.get("content")
+            current_steps.append({"type": "tool_result", "tool": tool_call_names.get(tc_id, ""), "result": result})
     return turns
 
 

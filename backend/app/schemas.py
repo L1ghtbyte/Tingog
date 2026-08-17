@@ -122,6 +122,7 @@ class ConversationTurnOut(BaseModel):
 
     question: str | None
     mode: Literal["briefed", "clarifying"]
+    steps: list[dict[str, Any]] = []
     narrative: str | None = None
     claims: list[dict[str, Any]] | None = None
     clarifying_question: str | None = None

@@ -270,18 +270,23 @@ function ChatTurnBlock({
 
     return (
         <div className="flex flex-col gap-1.5">
-            {turn.question !== null ? (
+            {/* A bubble and a timestamp caption are independent, not either/or — a
+                reconstructed general-briefing turn has both (real question text via the
+                same "(general briefing)" fallback the live Ask flow already uses, plus
+                when it happened); a live turn just asked has only the bubble; the old
+                passive single-narrative fallback (no real conversation exists at all)
+                has only the caption, since nothing was actually asked there. */}
+            {turn.question !== null && (
                 <div className="self-end max-w-[90%] bg-primary-container/15 border border-primary/40 px-2.5 py-1.5 text-xs text-on-surface">
                     {turn.question}
                 </div>
-            ) : (
-                turn.createdAt && (
-                    <p className="text-[10px] text-on-surface-variant italic">
-                        {turn.triggerSource === "scheduled"
-                            ? `From a scheduled check, ${formatTime(turn.createdAt, now)}`
-                            : `Last generated ${formatTime(turn.createdAt, now)}`}
-                    </p>
-                )
+            )}
+            {turn.createdAt && (
+                <p className="text-[10px] text-on-surface-variant italic">
+                    {turn.triggerSource === "scheduled"
+                        ? `From a scheduled check, ${formatTime(turn.createdAt, now)}`
+                        : `Last generated ${formatTime(turn.createdAt, now)}`}
+                </p>
             )}
 
             {/* Process trace — expandable/collapsible per turn, so a long back-and-forth
@@ -355,13 +360,14 @@ export function AISitRep() {
     const eventSourceRef = useRef<EventSource | null>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
 
-    // Passive load on mount — replays the coordinator's WHOLE real conversation, not
-    // just the single last saved narrative. A back-and-forth is real, persisted data
-    // (backend save_conversation) — without this, a page reload or server restart wiped
-    // every past question/answer from view even though the backend never lost it. No
-    // step trace on replayed turns (none was ever persisted — never synthesize fake
-    // steps for it), and conversationId is restored so a follow-up question continues
-    // the SAME thread instead of silently starting a disconnected new one.
+    // Passive load on mount — replays the coordinator's WHOLE real conversation,
+    // including each turn's real tool-call trace (the raw saved messages already carry
+    // it — that's the agent's own memory), not just the single last saved narrative. A
+    // back-and-forth is real, persisted data (backend save_conversation) — without this,
+    // a page reload or server restart wiped every past question/answer from view even
+    // though the backend never lost it. conversationId is restored so a follow-up
+    // question continues the SAME thread instead of silently starting a disconnected
+    // new one.
     useEffect(() => {
         getLastConversation()
             .then((history) => {
@@ -370,13 +376,17 @@ export function AISitRep() {
                 setTurns(
                     history.turns.map((turn, i) => ({
                         id: `history-${i}`,
-                        question: turn.question,
-                        // Only the conversation's own updated_at is available (no
-                        // per-turn timestamp is persisted) — real data, applied only to
-                        // the general-briefing (question=null) turns that actually show
-                        // it, same as the old single-narrative passive display did.
-                        ...(turn.question === null ? { createdAt: history.updated_at, triggerSource: "coordinator_query" as const } : {}),
-                        steps: [],
+                        // A general briefing (question=null) still shows a real bubble —
+                        // same "(general briefing)" fallback text handleAsk already uses
+                        // for a blank live ask, so a reloaded turn reads identically to
+                        // a live one instead of silently losing its question.
+                        question: turn.question ?? "(general briefing)",
+                        // Only the conversation's own updated_at is known (no per-turn
+                        // timestamp is persisted) — real data, applied only to the LAST
+                        // turn, since attaching it to every turn would misleadingly
+                        // imply they all happened at that same moment.
+                        ...(i === history.turns.length - 1 ? { createdAt: history.updated_at, triggerSource: "coordinator_query" as const } : {}),
+                        steps: turn.steps,
                         terminalEvent:
                             turn.mode === "clarifying"
                                 ? { type: "clarifying", clarifying_question: turn.clarifying_question ?? "", conversation_id: history.conversation_id }
