@@ -65,7 +65,9 @@ def get_or_create_real_purok(db: Session, device_id: str) -> Purok:
         latitude=config.REAL_DEVICE_LAT,
         longitude=config.REAL_DEVICE_LNG,
         is_simulated=False,
-        baseline_vulnerable_count=0,
+        # A bare 0 reads as "confirmed zero households," not "no roster data yet" — the
+        # same reasoning get_or_create_gateway_purok's own comment gives (ingestion_serial.py).
+        baseline_household_count=30,
         active_needs=[],
         distinct_buttons_15min=0,
         status="unknown",

@@ -142,11 +142,12 @@ def get_or_create_gateway_purok(db: Session, device_id: str) -> Purok:
         latitude=lat,
         longitude=lng,
         is_simulated=False,
-        # A bare 0 here reads as "confirmed zero vulnerable households," not "no data
-        # yet" — misleading in the exact way the honestly-placeholder purok_leader field
-        # above isn't. A small reasonable mock value (same category as the simulated
-        # puroks' seeded counts) until real roster data exists for this device.
-        baseline_vulnerable_count=2,
+        # A bare 0 here reads as "confirmed zero households," not "no data yet" —
+        # misleading in the exact way the honestly-placeholder purok_leader field above
+        # isn't. A reasonable mock value in the same ~20-50 households/purok range
+        # seed_data.py's simulated puroks use (ARCHITECTURE.md §5.1) until real roster
+        # data exists for this device.
+        baseline_household_count=30,
         active_needs=[],
         distinct_buttons_15min=0,
         status="unknown",

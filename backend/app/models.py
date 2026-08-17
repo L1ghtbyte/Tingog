@@ -17,7 +17,13 @@ class Purok(Base):
     latitude = Column(Float, nullable=False)
     longitude = Column(Float, nullable=False)
     is_simulated = Column(Boolean, nullable=False)
-    baseline_vulnerable_count = Column(Integer, default=0)
+    # A pre-known household count from barangay roster data — was named
+    # baseline_vulnerable_count until 2026-08-17, but nothing anywhere ever computed a
+    # real vulnerability assessment (the seeded/default values were always placeholder
+    # mock numbers, same category as purok_leader's placeholder names). Renamed rather
+    # than just relabeled in the UI, so the field's own name doesn't silently claim a
+    # methodology that doesn't exist if anyone inspects the API response directly.
+    baseline_household_count = Column(Integer, default=0)
     last_event_at = Column(DateTime, nullable=True)
 
     # Stewardship, not access control — who's accountable for this device's physical

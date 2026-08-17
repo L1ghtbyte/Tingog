@@ -36,7 +36,7 @@ export interface PurokOut {
     latitude: number;
     longitude: number;
     is_simulated: boolean;
-    baseline_vulnerable_count: number;
+    baseline_household_count: number;
     last_event_at: string | null;
     active_needs: NeedButton[];
     distinct_buttons_15min: number;

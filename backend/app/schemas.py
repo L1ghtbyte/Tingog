@@ -41,7 +41,7 @@ class PurokOut(BaseModel):
     latitude: float
     longitude: float
     is_simulated: bool
-    baseline_vulnerable_count: int
+    baseline_household_count: int
     last_event_at: UTCDatetime | None
     active_needs: list[str]
     distinct_buttons_15min: int

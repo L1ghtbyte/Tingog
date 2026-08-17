@@ -385,7 +385,7 @@ export function TacticalMap({ filter, onFilterChange, isDarkMode, mapStyle }: Ta
                                             <span className="text-on-surface-variant">LEADER:</span> {p.purok_leader ?? "unset"}
                                         </div>
                                         <div>
-                                            <span className="text-on-surface-variant">NO. OF HOUSEHOLDS:</span> {p.baseline_vulnerable_count}
+                                            <span className="text-on-surface-variant">NO. OF HOUSEHOLDS:</span> {p.baseline_household_count}
                                         </div>
                                         {p.severity_reasons.length > 0 && (
                                             <div>

@@ -29,8 +29,8 @@ from app.timeutil import utcnow
 #
 # purok_leader: reasonable placeholder names (Sphere-style mock data, not any real
 # identifiable person) — an empty/"(TBD)" field read as broken rather than as a
-# deliberate placeholder, so populate it the same way baseline_vulnerable_count already
-# gets a plausible non-zero mock value below.
+# deliberate placeholder, so populate it the same way baseline_household_count already
+# gets a plausible mock value below.
 #
 # Purok 3 was originally also "cluster" (a 3-purok pre-seeded cluster), but the
 # finalized pitch script (pitch/SCRIPT.md, Stage 6) narrates only Purok 1 and 2 as
@@ -60,10 +60,16 @@ def _make_purok(index: int, device_id: str, name: str, leader_name: str, lat_off
         latitude=config.BARANGAY_CENTER_LAT + lat_offset,
         longitude=config.BARANGAY_CENTER_LNG + lng_offset,
         is_simulated=True,
-        # Varies the mock baseline count across simulated puroks — uses the list index,
-        # not device_id (now a string, no longer usable in a modulo), purely to keep the
-        # mock values non-uniform.
-        baseline_vulnerable_count=min(3, max(0, index % 4)),
+        # Found live 2026-08-17: this used to seed 0-3 ("baseline_vulnerable_count"),
+        # plausible for a count of vulnerable households but absurd as a purok's total
+        # household count once the field was renamed/relabeled to what it actually is
+        # (no real vulnerability assessment was ever computed — see the field's own
+        # comment in models.py). Rescaled into the ~20-50 households/purok range
+        # ARCHITECTURE.md §5.1 already cites when discussing per-purok deployment cost
+        # — still a mock number (no real roster backs it), just no longer an
+        # implausible one. Varies by list index, not device_id (a string, unusable in a
+        # modulo), purely to keep the mock values non-uniform.
+        baseline_household_count=20 + (index * 7) % 31,
         active_needs=[],
         distinct_buttons_15min=0,
         status="unknown",
