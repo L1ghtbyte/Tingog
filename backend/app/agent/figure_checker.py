@@ -11,6 +11,7 @@ in prompts.py, told to the LLM directly) is paths relative to the tool result it
 e.g. "[0].need_type", not "clusters[0]" — since there's no wrapper object to name.
 """
 
+import json
 import re
 from dataclasses import dataclass
 
@@ -101,6 +102,18 @@ def _field_matches(record: dict, key: str, value, known_numbers: set[float] | No
     if record.get(key) == value or any(v == value for v in record.values()):
         return True
     if isinstance(value, str):
+        # Found live 2026-08-17: a claim bundled a list sibling fact (e.g. "puroks") as
+        # a JSON-encoded STRING — '["Purok 1", "Purok 2"]' — instead of a real nested
+        # array, when the real record already holds an actual list. Structurally
+        # correct data, just double-encoded; parse it before falling back to substring
+        # containment, which only makes sense for genuinely scalar string values.
+        if value[:1] in "[{":
+            try:
+                parsed = json.loads(value)
+            except (ValueError, TypeError):
+                parsed = None
+            if parsed is not None and (record.get(key) == parsed or any(v == parsed for v in record.values())):
+                return True
         return any(isinstance(v, str) and v and v in value for v in record.values())
     if isinstance(value, int) and not isinstance(value, bool):
         # Found live 2026-08-17: a claim wrote a plain whole number (e.g. "hours": 14)

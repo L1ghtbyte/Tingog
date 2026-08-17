@@ -489,3 +489,48 @@ def test_narrative_with_wrong_whole_number_does_not_coincidentally_round_match()
     result = check(llm_output, tool_results)
     assert not result.passed
     assert result.failure_reason == "unbacked_narrative_number"
+
+
+def test_claim_with_json_stringified_list_sibling_passes():
+    # Regression test: found live 2026-08-17 — a real claim bundled a true sibling fact
+    # (the puroks in a cluster) as a JSON-encoded STRING, '["Purok 1", "Purok 2"]',
+    # instead of a real nested array, when the actual tool result already holds a real
+    # list. Structurally correct data, just double-encoded by the model.
+    tool_results = {
+        "get_active_clusters": [{"cluster_id": 1, "need_type": "TUBIG", "puroks": ["Purok 1", "Purok 2"]}]
+    }
+    llm_output = {
+        "claims": [
+            {
+                "source_tool": "get_active_clusters",
+                "source_field": "[0].need_type",
+                "need_type": "TUBIG",
+                "puroks": '["Purok 1", "Purok 2"]',
+            }
+        ],
+        "narrative": "Purok 1 and Purok 2 are both reporting TUBIG.",
+    }
+    result = check(llm_output, tool_results)
+    assert result.passed
+
+
+def test_claim_with_wrong_json_stringified_list_sibling_still_fails():
+    # The leniency above must not become a loophole — a genuinely wrong list, even
+    # JSON-encoded as a string, should still be caught.
+    tool_results = {
+        "get_active_clusters": [{"cluster_id": 1, "need_type": "TUBIG", "puroks": ["Purok 1", "Purok 2"]}]
+    }
+    llm_output = {
+        "claims": [
+            {
+                "source_tool": "get_active_clusters",
+                "source_field": "[0].need_type",
+                "need_type": "TUBIG",
+                "puroks": '["Purok 9"]',
+            }
+        ],
+        "narrative": "Purok 9 is reporting TUBIG.",
+    }
+    result = check(llm_output, tool_results)
+    assert not result.passed
+    assert result.failure_reason == "claim_mismatch"
