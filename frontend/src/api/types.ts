@@ -81,12 +81,17 @@ export interface EscalationOut {
     webhook_delivered: boolean;
 }
 
+// Which of the three real invocation modes (see ARCHITECTURE.md) produced a briefing.
+// Event-triggered never appears here — it never touches the Briefing Agent at all.
+export type TriggerSource = "coordinator_query" | "scheduled";
+
 export interface BriefingResponse {
     mode: BriefingMode;
     claims: Record<string, unknown>[] | null;
     narrative: string | null;
     clarifying_question: string | null;
     tool_results: Record<string, unknown>;
+    trigger_source: TriggerSource | null;
     conversation_id: string | null;
 }
 
@@ -95,8 +100,46 @@ export interface BriefingResponse {
 export interface LastBriefingOut {
     narrative: string;
     claims: Record<string, unknown>[];
+    trigger_source: TriggerSource;
     created_at: string;
 }
+
+// One step from GET /api/briefing/stream (SSE), in the order they're emitted. Mirrors
+// backend/app/agent/briefing_agent.py's run_briefing_stream() event shapes exactly.
+export type StreamEvent =
+    | { type: "tool_call"; tool: string; args: Record<string, unknown> | null }
+    | { type: "tool_result"; tool: string; result: unknown }
+    | { type: "checking" }
+    | { type: "check_failed"; reason: string | null }
+    | { type: "retrying" }
+    | { type: "clarifying"; clarifying_question: string; conversation_id: string }
+    | {
+          type: "final";
+          mode: "briefed" | "raw";
+          claims?: Record<string, unknown>[];
+          narrative?: string;
+          tool_results: Record<string, unknown>;
+          trigger_source: TriggerSource;
+          conversation_id: string;
+      }
+    | { type: "error"; message: string };
+
+// One event from GET /api/diagnostics/briefing-reliability (SSE). Mirrors
+// backend/app/routers/diagnostics.py's _reliability_stream() event shapes exactly.
+export type ReliabilityRunMode = "briefed" | "raw" | "clarifying" | "crashed" | "unknown";
+
+export type ReliabilityEvent =
+    | { type: "run_start"; run: number; total: number }
+    | {
+          type: "run_result";
+          run: number;
+          total: number;
+          mode: ReliabilityRunMode;
+          elapsed_seconds: number;
+          check_failed_count: number;
+          error: string | null;
+      }
+    | { type: "summary"; total: number; briefed: number; raw: number; other: number; avg_seconds: number };
 
 export interface DeliveryCreateIn {
     items: NeedButton[];

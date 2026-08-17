@@ -16,6 +16,7 @@ export type MapFilter = "ALL" | "CRITICAL" | "NEEDS" | "SILENT" | "OK";
 
 interface TacticalMapProps {
     filter: MapFilter;
+    onFilterChange: (filter: MapFilter) => void;
     isDarkMode: boolean;
     mapStyle: "humanitarian" | "minimal";
 }
@@ -32,15 +33,22 @@ const STATUS_TEXT_COLOR: Record<PurokOut["status"], string> = {
     stable: "text-green-400",
 };
 
-function createMarkerIcon(purok: PurokOut): L.DivIcon {
+function createMarkerIcon(purok: PurokOut, isRecentlyPressed: boolean): L.DivIcon {
     const isCritical = purok.active_needs.includes("TABANG");
-    // Real devices render as a diamond, simulated ones as a circle — a second,
-    // shape-based signal on top of the [SIMULATED] text badge in the popup, so it's
-    // legible even before a marker is clicked (same hard requirement as the card badge).
-    const shapeClass = purok.is_simulated ? "rounded-full" : "rotate-45";
+    // Uniform marker shape regardless of is_simulated — the simulated/real distinction
+    // (both the text badge and this shape split) was deliberately removed from the UI;
+    // is_simulated stays real in the DB/API, just no longer surfaced visually here.
+    //
+    // Two independent rings, deliberately different in size/color so they're never
+    // confused: the red ring means "TABANG is currently an active need" (persists as
+    // long as that's true). The larger amber ring means "a new event just landed on
+    // this purok" (fades after a few seconds) — this is the guaranteed, filter- and
+    // popup-independent signal that something happened here, requested directly:
+    // relying solely on the popup opening wasn't a reliable enough "this is active".
     const html = `
-        <div class="relative w-4 h-4 ${shapeClass} border-2 ${STATUS_COLOR[purok.status]}">
+        <div class="relative w-4 h-4 rounded-full border-2 ${STATUS_COLOR[purok.status]}">
             ${isCritical ? '<div class="absolute inset-0 rounded-full border-2 border-red-500 animate-ping opacity-75"></div>' : ""}
+            ${isRecentlyPressed ? '<div class="absolute -inset-2.5 rounded-full border-[3px] border-amber-300 animate-ping opacity-90"></div>' : ""}
         </div>
     `;
     return L.divIcon({ html, className: "tingog-marker-icon", iconSize: [16, 16], iconAnchor: [8, 8] });
@@ -72,15 +80,64 @@ function formatTime(iso: string | null, now: number): string {
 
 // Watches context's focusedPurokId (set by AISitRep's escalation list / claim chips)
 // and pans/zooms the map to it — only usable inside <MapContainer>, hence a sub-component.
-function FocusController({ puroks }: { puroks: PurokOut[] }) {
+//
+// Focus is a one-shot command, not a persistent "keep this centered" state: nothing
+// ever cleared focusedPurokId after use, and `puroks` gets a new array reference on
+// every ~5s poll — so this effect was re-running (and re-flying) on every single poll
+// tick for as long as a purok had ever been focused, fighting any manual panning in
+// between. Resetting focusedPurokId back to null right after firing makes it fire
+// exactly once per click.
+const FOCUS_ZOOM = 16;
+// Leaflet popups open upward from their marker — centering the marker dead-center in
+// the viewport pushes the popup's top edge under the header/KPI strip. Instead of
+// flying to the marker's real coordinate, fly to a point offset north of it by this
+// many screen pixels, so the marker (and its popup, opening above it) end up lower on
+// screen with real headroom above.
+const POPUP_HEADROOM_PX = 160;
+
+// Single consolidated handler for EVERY way a purok can get focused — a marker click,
+// "VIEW ON MAP" on an escalation card, AISitRep's referenced-purok chips, or a fresh
+// live event. All of them just call setFocusedPurokId; this is the one place that
+// turns that into "fly there, make sure it's not hidden by a filter, open its popup" —
+// previously only the fresh-event path did the filter-reset-and-popup-open part, which
+// is why "VIEW ON MAP" flew to the purok but never actually opened its card.
+function FocusController({
+    puroks, markerRefs, filter, onFilterChange,
+}: {
+    puroks: PurokOut[];
+    markerRefs: React.MutableRefObject<Record<number, L.Marker>>;
+    filter: MapFilter;
+    onFilterChange: (filter: MapFilter) => void;
+}) {
     const map = useMap();
-    const { focusedPurokId } = useTingog();
+    const { focusedPurokId, setFocusedPurokId } = useTingog();
+    const pendingPopupIdRef = useRef<number | null>(null);
 
     useEffect(() => {
         if (focusedPurokId === null) return;
         const purok = puroks.find((p) => p.id === focusedPurokId);
-        if (purok) map.flyTo([purok.latitude, purok.longitude], 16, { duration: 0.75 });
-    }, [focusedPurokId, puroks, map]);
+        if (purok) {
+            const markerPoint = map.project([purok.latitude, purok.longitude], FOCUS_ZOOM);
+            const offsetTarget = map.unproject(markerPoint.subtract([0, POPUP_HEADROOM_PX]), FOCUS_ZOOM);
+            map.flyTo(offsetTarget, FOCUS_ZOOM, { duration: 0.75 });
+            pendingPopupIdRef.current = focusedPurokId;
+            // A filtered-out purok has no rendered marker yet, so its ref won't exist
+            // this render — reset to "ALL" so one appears, and let the effect below
+            // catch it once it does (may be the next render, not this one).
+            if (filter !== "ALL") onFilterChange("ALL");
+        }
+        setFocusedPurokId(null);
+    }, [focusedPurokId, puroks, map, setFocusedPurokId, filter, onFilterChange]);
+
+    // Runs after every render (deliberately no dependency array) — opens the queued
+    // popup the moment its marker ref actually exists.
+    useEffect(() => {
+        const id = pendingPopupIdRef.current;
+        if (id !== null && markerRefs.current[id]) {
+            markerRefs.current[id].openPopup();
+            pendingPopupIdRef.current = null;
+        }
+    });
 
     return null;
 }
@@ -124,15 +181,62 @@ function ResetViewBinding({ puroks }: { puroks: PurokOut[] }) {
     return null;
 }
 
-export function TacticalMap({ filter, isDarkMode, mapStyle }: TacticalMapProps) {
+const PULSE_DURATION_MS = 4000;
+
+export function TacticalMap({ filter, onFilterChange, isDarkMode, mapStyle }: TacticalMapProps) {
     const { puroks, clusters, setFocusedPurokId } = useTingog();
     const [detailById, setDetailById] = useState<Record<number, PurokDetailOut>>({});
     const [now, setNow] = useState(() => Date.now());
+    const [recentlyPressedIds, setRecentlyPressedIds] = useState<Set<number>>(new Set());
+    const markerRefs = useRef<Record<number, L.Marker>>({});
+    const lastEventAtRef = useRef<Record<number, string | null | undefined>>({});
+    const hasLoadedOnceRef = useRef(false);
 
     useEffect(() => {
         const timer = setInterval(() => setNow(Date.now()), 60000);
         return () => clearInterval(timer);
     }, []);
+
+    // A fresh press should feel exactly like clicking that marker — same fly-to, same
+    // popup opening with full details — not a subtle color change someone has to notice
+    // on their own. Detected by last_event_at actually changing since the previous poll.
+    // The actual fly-to/filter-reset/popup-open behavior lives in FocusController now
+    // (shared by every focus trigger, not just this one) — this effect only decides
+    // *when* a fresh event happened and hands off to setFocusedPurokId, plus drives the
+    // guaranteed pulse ring, which stays independent of focus entirely.
+    //
+    // Suppressing this on true initial page load (so every existing marker doesn't
+    // flash open at once) has to be a ONE-TIME flag, not "have I seen this purok id
+    // before" — a per-purok check also silently suppressed a brand-new purok's very
+    // first-ever press (e.g. a real device registering mid-session for the first time),
+    // since that purok's first sighting looks identical to "just loaded" either way.
+    useEffect(() => {
+        puroks.forEach((p) => {
+            const previous = lastEventAtRef.current[p.id];
+            const isFirstSightingOfThisPurok = previous === undefined;
+            const hasFreshEvent = p.last_event_at !== null && p.last_event_at !== previous;
+            const shouldFire = hasFreshEvent && (!isFirstSightingOfThisPurok || hasLoadedOnceRef.current);
+            if (shouldFire) {
+                // Guaranteed signal, independent of filters or whether the popup manages
+                // to open: the marker itself pulses. This is the fix for "there should be
+                // activity on the map tied to every event, not something subtle" — it
+                // doesn't depend on the popup/filter machinery at all.
+                setRecentlyPressedIds((prev) => new Set(prev).add(p.id));
+                setTimeout(() => {
+                    setRecentlyPressedIds((prev) => {
+                        if (!prev.has(p.id)) return prev;
+                        const next = new Set(prev);
+                        next.delete(p.id);
+                        return next;
+                    });
+                }, PULSE_DURATION_MS);
+
+                setFocusedPurokId(p.id);
+            }
+            lastEventAtRef.current[p.id] = p.last_event_at;
+        });
+        hasLoadedOnceRef.current = true;
+    }, [puroks, setFocusedPurokId]);
 
     const filteredPuroks = puroks.filter((p) => {
         if (filter === "ALL") return true;
@@ -215,7 +319,7 @@ export function TacticalMap({ filter, isDarkMode, mapStyle }: TacticalMapProps) 
                     className={getMapClass()}
                 />
                 <FitBoundsOnce puroks={puroks} />
-                <FocusController puroks={puroks} />
+                <FocusController puroks={puroks} markerRefs={markerRefs} filter={filter} onFilterChange={onFilterChange} />
                 <ResetViewBinding puroks={puroks} />
 
                 {clusterLines.map(({ cluster, points }) => (
@@ -232,7 +336,11 @@ export function TacticalMap({ filter, isDarkMode, mapStyle }: TacticalMapProps) 
                         <Marker
                             key={p.id}
                             position={[p.latitude, p.longitude]}
-                            icon={createMarkerIcon(p)}
+                            icon={createMarkerIcon(p, recentlyPressedIds.has(p.id))}
+                            ref={(instance) => {
+                                if (instance) markerRefs.current[p.id] = instance;
+                                else delete markerRefs.current[p.id];
+                            }}
                             eventHandlers={{
                                 click: () => setFocusedPurokId(p.id),
                                 popupopen: () => handlePopupOpen(p),
@@ -242,8 +350,8 @@ export function TacticalMap({ filter, isDarkMode, mapStyle }: TacticalMapProps) 
                                 <div className="w-64 bg-surface-container-highest/95 border border-outline-variant backdrop-blur-md p-3 shadow-xl text-on-surface">
                                     <div className="flex justify-between items-start mb-2 border-b border-outline-variant pb-2 gap-2">
                                         <span className="text-label-caps font-label-caps font-bold tracking-widest">
-                                            {p.device_id}: {p.name}
-                                            {p.is_simulated && <span className="ml-1 text-[9px] text-on-surface-variant">[SIMULATED]</span>}
+                                            {p.name}
+                                            <span className="ml-1 text-[9px] font-normal text-on-surface-variant">{p.device_id}</span>
                                         </span>
                                         <span className={`text-label-caps font-label-caps shrink-0 ${STATUS_TEXT_COLOR[p.status]}`}>
                                             {formatTime(p.last_event_at, now)}
@@ -262,7 +370,7 @@ export function TacticalMap({ filter, isDarkMode, mapStyle }: TacticalMapProps) 
                                             <span className="text-on-surface-variant">LEADER:</span> {p.purok_leader ?? "unset"}
                                         </div>
                                         <div>
-                                            <span className="text-on-surface-variant">VULNERABLE HH:</span> {p.baseline_vulnerable_count}
+                                            <span className="text-on-surface-variant">VULNERABLE HOUSEHOLDS:</span> {p.baseline_vulnerable_count}
                                         </div>
                                         {p.severity_reasons.length > 0 && (
                                             <div>

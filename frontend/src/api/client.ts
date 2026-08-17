@@ -44,6 +44,24 @@ export const getBriefing = (question?: string, conversationId?: string) => {
 // Passive read — no agent run, no LLM call. Null if nothing's been generated yet.
 export const getLastBriefing = () => apiGet<LastBriefingOut | null>("/api/briefing/last");
 
+// Not run through apiGet — EventSource wants a plain URL, not a fetch call, and it only
+// supports GET, so this shares getBriefing's query-building but returns the URL itself.
+export const getBriefingStreamUrl = (question?: string, conversationId?: string) => {
+    const params = new URLSearchParams();
+    if (question) params.set("question", question);
+    if (conversationId) params.set("conversation_id", conversationId);
+    const query = params.toString();
+    return `${BASE_URL}/api/briefing/stream${query ? `?${query}` : ""}`;
+};
+
+// EventSource wants a plain URL, same reason as getBriefingStreamUrl above.
+export const getReliabilityCheckUrl = (runs = 5, question?: string) => {
+    const params = new URLSearchParams();
+    params.set("runs", String(runs));
+    if (question) params.set("question", question);
+    return `${BASE_URL}/api/diagnostics/briefing-reliability?${params.toString()}`;
+};
+
 export const logDelivery = (purokId: number, body: DeliveryCreateIn) =>
     apiPost<PurokDetailOut>(`/api/puroks/${purokId}/deliveries`, body);
 

@@ -102,8 +102,8 @@ export function PacketStream() {
                         >
                             <div className="flex justify-between items-start border-b border-outline-variant pb-1 gap-2">
                                 <span className={`text-data-tabular font-data-tabular ${isDismissed ? "text-on-surface-variant" : "text-on-surface font-bold"}`}>
-                                    {event.device_id} ({event.purok_name})
-                                    {event.is_simulated && <span className="ml-1 text-[9px] text-on-surface-variant">[SIMULATED]</span>}
+                                    {event.purok_name}
+                                    <span className="ml-1 text-[9px] font-normal text-on-surface-variant">{event.device_id}</span>
                                 </span>
                                 <span className={`text-data-tabular font-data-tabular shrink-0 ${isCritical ? "text-red-400" : "text-on-surface-variant"}`}>
                                     {formatTime(event.received_at)}
