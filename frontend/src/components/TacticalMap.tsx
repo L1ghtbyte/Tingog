@@ -334,8 +334,8 @@ export function TacticalMap({ filter, onFilterChange, isDarkMode, mapStyle }: Ta
                 <ResetViewBinding puroks={puroks} />
 
                 {clusterLines.map(({ cluster, points }) => (
-                    <Polyline key={cluster.cluster_id} positions={points} pathOptions={{ color: "#F59E0B", weight: 2, dashArray: "6 6", opacity: 0.7 }}>
-                        <Tooltip permanent direction="center" className="!bg-amber-500/90 !text-black !border-0 !text-[10px] !font-bold">
+                    <Polyline key={cluster.cluster_id} positions={points} pathOptions={{ color: "#F59E0B", weight: 4, dashArray: "8 6", opacity: 0.9 }}>
+                        <Tooltip permanent direction="center" className="!bg-amber-500 !text-black !border-0 !text-[11px] !font-bold !px-2 !py-1">
                             {cluster.need_type} cluster — {cluster.puroks.length} puroks, {cluster.confidence}% confidence
                         </Tooltip>
                     </Polyline>

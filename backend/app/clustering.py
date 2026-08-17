@@ -41,13 +41,29 @@ def get_active_clusters(db: Session) -> list[dict]:
         while j + 1 < n and (rows[j + 1][0].received_at - rows[i][0].received_at) <= window:
             j += 1
         window_rows = rows[i : j + 1]
-        distinct_purok_ids = {r[0].purok_id for r in window_rows}
 
-        if len(distinct_purok_ids) >= config.CLUSTER_MIN_PUROKS:
-            all_needs: set[str] = set()
-            for _event, needs in window_rows:
-                all_needs |= needs
-            need_type = next(iter(all_needs)) if len(all_needs) == 1 else "mixed"
+        # Found live 2026-08-17: grouping by "any need, any purok" first and only
+        # checking need uniformity afterward let a purok's own SECOND, unrelated need
+        # (e.g. a TAMBAL press) corrupt an otherwise-clean same-need cluster into
+        # "mixed" — even though only ONE purok ever reported that second need. A
+        # cluster is meant to signal "multiple communities converging on the same
+        # need," so it must be computed per need type: which DISTINCT puroks reported
+        # THAT specific need within the window. "mixed" is now reserved for a genuine
+        # case — more than one need type each independently reaching CLUSTER_MIN_PUROKS
+        # distinct puroks — not an artifact of one purok pressing two different buttons.
+        puroks_by_need: dict[str, set[int]] = {}
+        for event, needs in window_rows:
+            for need in needs:
+                puroks_by_need.setdefault(need, set()).add(event.purok_id)
+
+        qualifying_needs = {need: pids for need, pids in puroks_by_need.items() if len(pids) >= config.CLUSTER_MIN_PUROKS}
+
+        if qualifying_needs:
+            if len(qualifying_needs) == 1:
+                need_type, distinct_purok_ids = next(iter(qualifying_needs.items()))
+            else:
+                need_type = "mixed"
+                distinct_purok_ids = set().union(*qualifying_needs.values())
 
             span_minutes = (window_rows[-1][0].received_at - window_rows[0][0].received_at).total_seconds() / 60
             # Confidence heuristic — not a validated model, same "crude placeholder"
