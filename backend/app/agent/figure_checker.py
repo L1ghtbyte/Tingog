@@ -41,6 +41,17 @@ def resolve_path(root, path: str):
                 current = current.get(str(idx))
             elif isinstance(current, (list, tuple)) and int(idx) < len(current):
                 current = current[int(idx)]
+            elif isinstance(current, (list, tuple)):
+                # Found live 2026-08-17: a model reused get_purok's own "[N] means the
+                # item for purok N" convention against a DIFFERENT tool that returns a
+                # plain positionally-indexed list (e.g. get_high_severity), not a dict
+                # keyed by purok_id — so N was out of range as a raw position even
+                # though the claim was substantively correct. When N is out of range
+                # positionally, but exactly one item in the list has purok_id == N,
+                # that's what was actually meant; anything less exact (no match, or
+                # more than one) stays a real rejection, not a loophole.
+                candidates = [item for item in current if isinstance(item, dict) and item.get("purok_id") == int(idx)]
+                current = candidates[0] if len(candidates) == 1 else None
             else:
                 return None
         elif key:

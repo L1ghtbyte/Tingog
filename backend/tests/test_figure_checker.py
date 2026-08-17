@@ -296,6 +296,39 @@ def test_claim_with_wrong_number_disguised_as_tool_arg_still_fails():
     assert result.failure_reason == "claim_mismatch"
 
 
+def test_out_of_range_bracket_index_resolves_by_purok_id_on_a_plain_list():
+    # Regression test: found live 2026-08-17 — get_high_severity returns a plain
+    # positionally-indexed list (unlike get_purok's dict-keyed-by-purok_id shape), but a
+    # real model claim wrote source_field="[4].severity" meaning "the item for purok 4"
+    # (get_purok's own convention), not "position 4" — out of range on a 1-item list.
+    # The claim's actual VALUE was exactly right; only the indexing convention was
+    # borrowed from a different tool's shape.
+    tool_results = {
+        "get_high_severity": [{"purok_id": 4, "purok_name": "Purok 4", "severity": "high"}]
+    }
+    llm_output = {
+        "claims": [{"source_tool": "get_high_severity", "source_field": "[4].severity", "value": "high", "purok_id": 4}],
+        "narrative": "Purok 4 is high severity.",
+    }
+    result = check(llm_output, tool_results)
+    assert result.passed
+
+
+def test_out_of_range_bracket_index_with_no_matching_purok_id_still_fails():
+    # The leniency above must not become "any out-of-range index passes" — no item in
+    # the list actually has purok_id == 4, so this stays a real rejection.
+    tool_results = {
+        "get_high_severity": [{"purok_id": 9, "purok_name": "Purok 9", "severity": "high"}]
+    }
+    llm_output = {
+        "claims": [{"source_tool": "get_high_severity", "source_field": "[4].severity", "value": "high"}],
+        "narrative": "Purok 4 is high severity.",
+    }
+    result = check(llm_output, tool_results)
+    assert not result.passed
+    assert result.failure_reason == "claim_mismatch"
+
+
 def test_claim_with_false_sibling_field_still_fails():
     # The fallback above must not become a loophole — a genuinely wrong sibling field
     # should still be caught.
