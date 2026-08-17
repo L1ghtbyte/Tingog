@@ -55,18 +55,19 @@ function createMarkerIcon(purok: PurokOut, isRecentlyPressed: boolean): L.DivIco
     // (both the text badge and this shape split) was deliberately removed from the UI;
     // is_simulated stays real in the DB/API, just no longer surfaced visually here.
     //
-    // Two rings, not three visually — "open need" and "just happened" share the exact
-    // same larger sizing/weight (found live 2026-08-17: an earlier pass gave the open-
-    // need ring the smaller TABANG sizing instead, so it visibly shrank the moment the
-    // initial flash faded, instead of continuing to look like the same pulse). Red still
-    // means "TABANG is currently an active need"; the shared amber styling means either
-    // "some other need is currently open" (persists) or "a new event just landed here"
-    // (fades after a few seconds) — this is the guaranteed, filter- and popup-independent
-    // signal that something happened here, requested directly: relying solely on the
-    // popup opening wasn't a reliable enough "this is active".
+    // Every ring shares the exact same sizing/weight now (found live 2026-08-17: the
+    // TABANG/critical ring was still on the smaller original sizing while the open-need
+    // and just-happened rings had already moved to the larger one — every pulse on the
+    // map should read as the same signal at a glance, just a different color, not
+    // different sizes depending on which condition triggered it). Red still means
+    // "TABANG is currently an active need"; amber means either "some other need is
+    // currently open" (persists) or "a new event just landed here" (fades after a few
+    // seconds) — this is the guaranteed, filter- and popup-independent signal that
+    // something happened here, requested directly: relying solely on the popup opening
+    // wasn't a reliable enough "this is active".
     const html = `
         <div class="relative w-4 h-4 rounded-full border-2 ${STATUS_COLOR[purok.status]}">
-            ${isCritical ? '<div class="absolute inset-0 rounded-full border-2 border-red-500 animate-ping opacity-75"></div>' : ""}
+            ${isCritical ? '<div class="absolute -inset-2.5 rounded-full border-[3px] border-red-500 animate-ping opacity-90"></div>' : ""}
             ${hasOtherOpenNeed || isRecentlyPressed ? '<div class="absolute -inset-2.5 rounded-full border-[3px] border-amber-300 animate-ping opacity-90"></div>' : ""}
         </div>
     `;
