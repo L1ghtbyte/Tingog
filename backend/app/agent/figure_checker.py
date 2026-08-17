@@ -144,6 +144,24 @@ def _strip_last_segment(path: str) -> str:
     return path[: tokens[-1].start()]
 
 
+def _last_key_segment(path: str) -> str | None:
+    """The final dict-key token in a path, e.g. "by_need_type.TUBIG" -> "TUBIG";
+    "[0].purok_name" -> "purok_name"; "[0]" -> None (a bracket index, not a key).
+
+    Found live 2026-08-17: a claim citing source_field="by_need_type.TUBIG" bundled a
+    true sibling fact, need_type="TUBIG" — restating the very dict key that selected the
+    claim's own value. The sibling-fallback check below only searches the parent
+    record's VALUES for a match, and "TUBIG" is a KEY of that record, not a value, so a
+    fully correct claim was rejected every time. Tying the check to the exact key that
+    resolved this claim's OWN source_field (not just any key in the parent) keeps this
+    narrow: a sibling value naming a *different* key in the same dict still fails."""
+    tokens = list(_PATH_TOKEN_RE.finditer(path))
+    if not tokens:
+        return None
+    key, idx = tokens[-1].groups()
+    return key
+
+
 def _flatten_numbers(value) -> set[float]:
     # Numeric equality, not string equality — 14.0 (a claim's float) and "14.0" (the
     # narrative's text) must match even though Python formats them differently
@@ -163,6 +181,20 @@ def _flatten_numbers(value) -> set[float]:
         for v in value:
             numbers |= _flatten_numbers(v)
     return numbers
+
+
+def _number_is_backed(number: float, claimed_numbers: set[float], tool_arg_numbers: set[float]) -> bool:
+    """Same narrow rounding tolerance already applied to structured claim fields
+    (`_field_matches`), extended to raw prose numbers — found live 2026-08-17: a
+    narrative wrote "silent for 14 hours" for a claimed, cited value of 14.1, a
+    reasonable rounding when citing a precise figure in prose, not a fabrication. Only a
+    whole-number mention rounding to match a real claimed figure is tolerated, so an
+    unrelated wrong number still won't coincidentally round-match."""
+    if number in claimed_numbers or number in tool_arg_numbers:
+        return True
+    if number == int(number):
+        return any(round(v) == number for v in claimed_numbers)
+    return False
 
 
 def check(llm_output: dict, tool_results: dict, tool_arg_numbers: set[float] | None = None) -> CheckResult:
@@ -197,7 +229,10 @@ def check(llm_output: dict, tool_results: dict, tool_arg_numbers: set[float] | N
         # this still rejects a claim with any actually-wrong field, it just stops
         # requiring source_field to be the ONLY field the claim describes.
         parent = resolve_path(root, _strip_last_segment(source_field))
-        if isinstance(parent, dict) and all(_field_matches(parent, k, v, tool_arg_numbers) for k, v in expected.items()):
+        last_key = _last_key_segment(source_field)
+        if isinstance(parent, dict) and all(
+            v == last_key or _field_matches(parent, k, v, tool_arg_numbers) for k, v in expected.items()
+        ):
             continue
 
         return CheckResult(False, "claim_mismatch", claim, actual)
@@ -208,7 +243,7 @@ def check(llm_output: dict, tool_results: dict, tool_arg_numbers: set[float] | N
 
     for match in NUMBER_RE.finditer(narrative):
         number = float(match.group(0))
-        if number not in claimed_numbers and number not in tool_arg_numbers:
+        if not _number_is_backed(number, claimed_numbers, tool_arg_numbers):
             return CheckResult(False, "unbacked_narrative_number", None, match.group(0))
 
     # "assessment" (agent/prompts.py's ASSESSMENT_ADDENDUM, config.ENABLE_ASSESSMENT_LAYER)
@@ -219,7 +254,7 @@ def check(llm_output: dict, tool_results: dict, tool_arg_numbers: set[float] | N
     assessment = llm_output.get("assessment") or ""
     for match in NUMBER_RE.finditer(assessment):
         number = float(match.group(0))
-        if number not in claimed_numbers and number not in tool_arg_numbers:
+        if not _number_is_backed(number, claimed_numbers, tool_arg_numbers):
             return CheckResult(False, "unbacked_assessment_number", None, match.group(0))
 
     return CheckResult(True)

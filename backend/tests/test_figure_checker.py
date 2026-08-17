@@ -425,3 +425,67 @@ def test_assessment_introducing_a_new_unbacked_number_fails():
     result = check(llm_output, tool_results)
     assert not result.passed
     assert result.failure_reason == "unbacked_assessment_number"
+
+
+def test_claim_citing_a_dict_key_as_a_true_sibling_fact_passes():
+    # Regression test: found live 2026-08-17 — a real claim cited
+    # source_field="by_need_type.TUBIG" (a scalar count) and bundled a true sibling
+    # fact, need_type="TUBIG" — restating the very dict key that selected the value.
+    # The sibling-fallback check only searched the parent record's VALUES, and "TUBIG"
+    # is a KEY there, not a value, so this fully correct claim was rejected every time.
+    tool_results = {"get_recent_activity": {"by_need_type": {"TUBIG": 3, "PAGKAON": 1}}}
+    llm_output = {
+        "claims": [
+            {"source_tool": "get_recent_activity", "source_field": "by_need_type.TUBIG", "need_type": "TUBIG", "count": 3}
+        ],
+        "narrative": "3 TUBIG reports came in.",
+    }
+    result = check(llm_output, tool_results)
+    assert result.passed
+
+
+def test_claim_citing_wrong_need_type_for_the_key_it_actually_resolved_still_fails():
+    # The leniency above must not become a loophole — a claim mislabeling WHICH key it
+    # resolved (right count, wrong need_type) is a real factual error, still caught
+    # because the sibling check is tied to the exact key this claim's own source_field
+    # resolved, not to any key present anywhere in the parent dict.
+    tool_results = {"get_recent_activity": {"by_need_type": {"TUBIG": 3, "PAGKAON": 3}}}
+    llm_output = {
+        "claims": [
+            {"source_tool": "get_recent_activity", "source_field": "by_need_type.TUBIG", "need_type": "PAGKAON", "count": 3}
+        ],
+        "narrative": "3 PAGKAON reports came in.",
+    }
+    result = check(llm_output, tool_results)
+    assert not result.passed
+    assert result.failure_reason == "claim_mismatch"
+
+
+def test_narrative_rounding_a_precise_float_to_a_whole_number_passes():
+    # Regression test: found live 2026-08-17 — a narrative said "silent for 14 hours"
+    # for a claimed, cited value of 14.1. The rounding tolerance already applied to
+    # structured claim fields didn't cover this separate raw-narrative-number check.
+    tool_results = {"get_unaccounted_puroks": [{"purok_name": "Purok 4", "hours_since_contact": 14.1}]}
+    llm_output = {
+        "claims": [
+            {"source_tool": "get_unaccounted_puroks", "source_field": "[0].hours_since_contact", "value": 14.1, "purok": "Purok 4"}
+        ],
+        "narrative": "Purok 4 has been silent for 14 hours.",
+    }
+    result = check(llm_output, tool_results)
+    assert result.passed
+
+
+def test_narrative_with_wrong_whole_number_does_not_coincidentally_round_match():
+    # The leniency above must not become "any number passes" — a genuinely wrong whole
+    # number that doesn't round-match any claimed figure is still rejected.
+    tool_results = {"get_unaccounted_puroks": [{"purok_name": "Purok 4", "hours_since_contact": 14.1}]}
+    llm_output = {
+        "claims": [
+            {"source_tool": "get_unaccounted_puroks", "source_field": "[0].hours_since_contact", "value": 14.1, "purok": "Purok 4"}
+        ],
+        "narrative": "Purok 4 has been silent for 99 hours.",
+    }
+    result = check(llm_output, tool_results)
+    assert not result.passed
+    assert result.failure_reason == "unbacked_narrative_number"
