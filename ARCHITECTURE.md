@@ -173,7 +173,7 @@ Clusters (multiple *different* communities reporting the same need close togethe
 ## 8. The honesty rules — enforced structurally, not left to a presenter's memory
 
 1. **Silence is never "safe."** Gone-quiet is marked `unknown`, not `stable`.
-2. **Simulated data is always visibly flagged** — `is_simulated: true` on every simulated purok's record.
+2. **Simulated data is real and traceable, end-to-end.** `is_simulated: true` is set on every simulated purok's record and preserved through the full pipeline (DB, API, every response) — auditable and query-able at any point. As of 2026-08-17 this is disclosed **verbally during presentation** rather than as a persistent UI badge/marker-shape distinction, the same pattern already used for `REAL_DEVICE_LAT`/`REAL_DEVICE_LNG` (§4's config comment: "disclosed verbally when presenting... not via a UI badge, since it's real data just imprecisely located") — extended here to a second field, not a new kind of exception.
 3. **No ranking of who gets help first.** Structurally excluded — no code path can produce one, not just a prompt instruction.
 4. **Every number a summary states must trace to real data.** Mechanically enforced — see §11.
 
@@ -224,7 +224,7 @@ Raised directly by a mentor review; worth a clear, direct answer rather than a d
 ## 14. What's real vs. simulated this week
 
 - One physical device is real.
-- A handful of additional communities are simulated, to demonstrate patterns one device alone can't produce — visibly marked, per §8.
+- A handful of additional communities are simulated, to demonstrate patterns one device alone can't produce — real and traceable end-to-end in the data (`is_simulated: true`), disclosed verbally during presentation rather than a UI badge, per §8.
 - The fielded version has one device per real purok; this week proves the pipeline works end to end, not that it's deployed at scale.
 
 ## 15. If your mentor asks...
